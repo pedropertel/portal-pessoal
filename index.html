@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" onload="onSupabaseLoaded()"></script>
 <style>
 :root {
   --bg:       #080E07;
@@ -983,43 +983,31 @@ body {
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────
-const SUPABASE_URL = 'https://msbwplsknncnxwsalumd.supabase.co';
+const SUPABASE_URL  = 'https://msbwplsknncnxwsalumd.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zYndwbHNrbm5jbnh3c2FsdW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTUzMTAsImV4cCI6MjA4OTQzMTMxMH0.qDSAYC8KQO_PQsdRrwsIdYWdkrwqO2riFiDjJ08zctI';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let supabase = null;
 
-// ─── INIT ─────────────────────────────────────────────────
 // Mostra login imediatamente — sem esperar nada
 document.getElementById('auth-screen').style.display = 'flex';
 
-// Depois verifica em background se já tem sessão ativa
-async function checkSession() {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) showApp();
-  } catch(e) { /* sem sessão, fica no login */ }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    checkSession();
-    buildDayStrip();
-    buildFolders();
-    loadTasks();
+// ─── INIT — chamado quando biblioteca Supabase termina de carregar ───
+function onSupabaseLoaded() {
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') showApp();
+    if (event === 'SIGNED_OUT') {
+      document.getElementById('app').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'flex';
+    }
   });
-} else {
-  checkSession();
+  // Verifica sessão existente em background
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session) showApp();
+  }).catch(() => {});
   buildDayStrip();
   buildFolders();
   loadTasks();
 }
-
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN') showApp();
-  if (event === 'SIGNED_OUT') {
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('auth-screen').style.display = 'flex';
-  }
-});
 
 // ─── AUTH ─────────────────────────────────────────────────
 async function signIn() {
