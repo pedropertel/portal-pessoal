@@ -303,6 +303,74 @@ body { overflow: hidden; }
 #mob-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 39; display: none; }
 #mob-overlay.open { display: block; }
 
+/* ═══ AGENDA ════════════════════════════════════════ */
+.agenda-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 800px) { .agenda-grid { grid-template-columns: 1fr; } }
+.agenda-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.agenda-card-hdr { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 14px; font-weight: 600; color: var(--white); display: flex; align-items: center; gap: 8px; }
+.agenda-day { padding: 10px 18px; border-bottom: 1px solid var(--border); }
+.agenda-day-label { font-size: 11px; font-weight: 600; color: var(--teal); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.agenda-ev { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; cursor: pointer; transition: opacity .15s; }
+.agenda-ev:hover { opacity: .8; }
+.agenda-ev-bar { width: 3px; border-radius: 2px; min-height: 32px; flex-shrink: 0; }
+.agenda-ev-time { font-size: 11px; color: var(--text2); font-weight: 500; min-width: 44px; }
+.agenda-ev-title { font-size: 13px; color: var(--white); font-weight: 500; }
+.agenda-ev-loc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.agenda-empty { text-align: center; padding: 32px; color: var(--text2); font-size: 13px; }
+.agenda-mini-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 10px 14px; }
+.cal-dow { font-size: 10px; font-weight: 600; color: var(--text3); text-align: center; padding: 4px; }
+.cal-day { font-size: 12px; color: var(--text2); text-align: center; padding: 6px 2px; border-radius: 6px; cursor: pointer; transition: all .15s; }
+.cal-day:hover { background: var(--card2); }
+.cal-day.today { background: var(--teal); color: #000; font-weight: 700; }
+.cal-day.has-event { position: relative; }
+.cal-day.has-event::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; background: var(--teal); border-radius: 50%; }
+.cal-day.other { opacity: .3; }
+
+/* ═══ LOADING / SKELETON ═══════════════════════════ */
+.skeleton { background: linear-gradient(90deg, var(--card2) 25%, var(--border) 50%, var(--card2) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--r-sm); }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.loading-overlay { display: flex; align-items: center; justify-content: center; padding: 40px; color: var(--text2); font-size: 13px; gap: 8px; }
+
+/* ═══ DRAG & DROP ══════════════════════════════════ */
+.kanban-body.drag-over { background: rgba(0,201,167,.06); border: 1px dashed var(--teal); border-radius: var(--r-sm); }
+.task-card.dragging { opacity: .4; transform: scale(.95); }
+.task-card { user-select: none; }
+.task-desc { font-size: 11px; color: var(--text2); margin-bottom: 6px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.task-empresa { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; padding: 1px 6px; border-radius: 8px; background: rgba(255,255,255,.06); color: var(--text2); }
+
+/* ═══ SEARCH RESULTS ═══════════════════════════════ */
+.search-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--border2); border-radius: var(--r-sm); margin-top: 4px; max-height: 320px; overflow-y: auto; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.search-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; transition: background .15s; border-bottom: 1px solid var(--border); }
+.search-item:last-child { border-bottom: none; }
+.search-item:hover { background: var(--card2); }
+.search-item-ico { font-size: 16px; flex-shrink: 0; }
+.search-item-info { flex: 1; min-width: 0; }
+.search-item-name { font-size: 13px; color: var(--white); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.search-item-meta { font-size: 11px; color: var(--text2); }
+.search-empty { padding: 20px; text-align: center; color: var(--text2); font-size: 13px; }
+
+/* ═══ CHAT MARKDOWN ════════════════════════════════ */
+.bubble code { background: rgba(0,0,0,.3); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 12px; }
+.bubble pre { background: rgba(0,0,0,.3); padding: 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
+.bubble pre code { background: none; padding: 0; }
+.bubble ul, .bubble ol { padding-left: 18px; margin: 4px 0; }
+.bubble li { margin: 2px 0; }
+.bubble a { color: var(--teal2); text-decoration: underline; }
+
+/* ═══ THEME TOGGLE ═════════════════════════════════ */
+html.light { --bg: #F0F2F5; --sidebar: #FFFFFF; --card: #FFFFFF; --card2: #F5F7FA; --border: #E2E5EB; --border2: #D1D5DB; --text: #374151; --text2: #6B7280; --text3: #9CA3AF; --white: #111827; }
+html.light .bubble code { background: rgba(0,0,0,.08); }
+html.light .bubble pre { background: rgba(0,0,0,.06); }
+html.light .msg.u .bubble { color: #fff; }
+html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,167,.05) 0%, transparent 50%), radial-gradient(ellipse at 80% 50%, rgba(74,144,217,.05) 0%, transparent 50%), var(--bg); }
+
+/* ═══ KEYBOARD SHORTCUT HINT ═══════════════════════ */
+.kbd { display: inline-flex; align-items: center; gap: 3px; background: var(--card2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 10px; color: var(--text2); font-family: 'SF Mono', monospace; }
+
+/* ═══ TEXTAREA for modal ═══════════════════════════ */
+.m-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 10px 13px; color: var(--white); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s; resize: vertical; min-height: 60px; }
+.m-textarea:focus { border-color: var(--teal); }
+
 /* ═══ UTILS ══════════════════════════════════════════ */
 .row { display: flex; align-items: center; gap: 8px; }
 .row.between { justify-content: space-between; }
@@ -343,10 +411,12 @@ body { overflow: hidden; }
       <span class="header-name">Portal Pessoal</span>
     </div>
     <div class="header-spacer"></div>
-    <div class="header-search">
+    <div class="header-search" style="position:relative" id="search-wrap">
       <span style="font-size:13px;color:var(--text3)">🔍</span>
-      <input placeholder="Buscar...">
+      <input placeholder="Buscar... (Ctrl+K)" id="global-search">
+      <div class="search-dropdown" id="search-dropdown" style="display:none"></div>
     </div>
+    <div class="hbtn" id="theme-toggle" title="Alternar tema">🌙</div>
     <div class="hbtn hbtn-badge" id="notif-toggle">🔔</div>
     <div class="hbtn" id="signout-btn" title="Sair">⏻</div>
     <div class="avatar">P</div>
@@ -497,27 +567,46 @@ body { overflow: hidden; }
             <div class="breadcrumb"><b>Home</b><span>/</span><b>Agenda</b></div>
             <div class="page-title">Agenda</div>
           </div>
-          <div class="btn-action primary" onclick="openNewEvent()">+ Novo evento</div>
+          <div class="row" style="gap:8px">
+            <div class="btn-action" onclick="showGcalModal()">📅 Google Calendar</div>
+            <div class="btn-action primary" onclick="openNewEvent()">+ Novo evento</div>
+          </div>
         </div>
-        <!-- Google Calendar connect -->
-        <div style="background:linear-gradient(135deg,rgba(74,144,217,.12),rgba(0,201,167,.08));border:1px solid rgba(74,144,217,.25);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;gap:16px" id="gcal-banner">
-          <div style="font-size:28px">📅</div>
-          <div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--white)">Conectar Google Calendar</div><div style="font-size:12px;color:var(--text2);margin-top:3px">Sincronize seus eventos em tempo real</div></div>
-          <div class="btn-action primary" onclick="showGcalModal()">Conectar</div>
-        </div>
-        <div id="agenda-events-wrap">
-          <div style="color:var(--text2);font-size:13px;text-align:center;padding:40px">Nenhum evento — conecte o Google Calendar ou crie manualmente pelo assistente.</div>
+        <div class="agenda-grid">
+          <div class="agenda-card" style="grid-row:span 2">
+            <div class="agenda-card-hdr">📋 Próximos eventos</div>
+            <div id="agenda-events-list">
+              <div class="loading-overlay"><span class="spinner"></span> Carregando...</div>
+            </div>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-hdr">📅 Calendário <span id="cal-month-label" style="font-weight:400;font-size:12px;color:var(--text2);margin-left:auto"></span></div>
+            <div id="mini-calendar"></div>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-hdr">📊 Resumo</div>
+            <div style="padding:14px 18px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;color:var(--text2)">Eventos esta semana</span><span style="font-size:14px;font-weight:600;color:var(--white)" id="ev-week-count">0</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;color:var(--text2)">Eventos este mês</span><span style="font-size:14px;font-weight:600;color:var(--white)" id="ev-month-count">0</span></div>
+              <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--text2)">Próximo evento</span><span style="font-size:12px;font-weight:500;color:var(--teal)" id="ev-next-label">—</span></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- TASKS -->
       <div class="page" id="page-tasks">
-        <div class="row between">
+        <div class="row between" style="flex-wrap:wrap;gap:8px">
           <div>
             <div class="breadcrumb"><b>Home</b><span>/</span><b>Tarefas</b></div>
             <div class="page-title">Tarefas</div>
           </div>
-          <div class="btn-action primary" onclick="openNewTask()">+ Nova tarefa</div>
+          <div class="row" style="gap:8px">
+            <select class="m-select" id="task-filter-empresa" style="width:auto;padding:7px 12px;font-size:12px;border-radius:20px" onchange="renderKanban()">
+              <option value="">Todas empresas</option>
+            </select>
+            <div class="btn-action primary" onclick="openNewTask()">+ Nova tarefa</div>
+          </div>
         </div>
         <div class="tasks-layout" id="kanban-board"></div>
       </div>
@@ -603,18 +692,13 @@ body { overflow: hidden; }
 const SURL = 'https://msbwplsknncnxwsalumd.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zYndwbHNrbm5jbnh3c2FsdW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTUzMTAsImV4cCI6MjA4OTQzMTMxMH0.qDSAYC8KQO_PQsdRrwsIdYWdkrwqO2riFiDjJ08zctI';
 
-// Create Supabase client with explicit auth storage
 const sb = window.supabase.createClient(SURL, SKEY, {
-  auth: {
-    storage: window.localStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false
-  }
+  auth: { storage: window.localStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false }
 });
 
 let notifInterval = null;
 let appInitialized = false;
+let _entidades = [];
 
 // ── AUTH ─────────────────────────────────────────────────
 document.getElementById('abtn').onclick = signIn;
@@ -636,7 +720,6 @@ async function signIn() {
   if(error){err.textContent='E-mail ou senha incorretos.';btn.disabled=false;btn.textContent='Entrar';}
 }
 
-// Single source of truth: ONLY onAuthStateChange drives app state
 sb.auth.onAuthStateChange((ev, session) => {
   if(ev === 'SIGNED_IN' || ev === 'TOKEN_REFRESHED' || ev === 'INITIAL_SESSION') {
     if(session && !appInitialized) {
@@ -654,14 +737,18 @@ sb.auth.onAuthStateChange((ev, session) => {
 });
 
 // ── INIT ─────────────────────────────────────────────────
-function initApp(){
+async function initApp(){
   setupSidebar();
-  loadDashboard();
-  loadTasks();
-  loadDocs();
-  loadChatHistory();
+  setupSearch();
+  setupTheme();
+  setupKeyboardShortcuts();
+  // Load entidades first (used by tasks, dashboard, etc)
+  const{data:ent}=await sb.from('entidades').select('*').eq('ativo',true).order('nome');
+  _entidades=ent||[];
+  populateEmpresaFilter();
+  // Load all data in parallel
+  await Promise.all([loadDashboard(), loadTasks(), loadDocs(), loadChatHistory(), loadAgenda()]);
   requestNotifPermission();
-  // Clear any existing interval to avoid duplicates
   if(notifInterval) clearInterval(notifInterval);
   notifInterval = setInterval(checkNotifs, 60000);
 }
@@ -700,23 +787,125 @@ function goPage(name){
   const nav=document.querySelector(`.nav-item[data-page="${name}"]`);
   if(page) page.classList.add('active');
   if(nav)  nav.classList.add('active');
-  // Lazy load
   if(name==='docs') loadDocs();
   if(name==='tasks') renderKanban();
   if(name==='dashboard') loadDashboard();
+  if(name==='agenda') loadAgenda();
 }
+
+// ── THEME ─────────────────────────────────────────────────
+function setupTheme(){
+  const saved = localStorage.getItem('portal-theme');
+  if(saved==='light') document.documentElement.classList.add('light');
+  updateThemeIcon();
+  document.getElementById('theme-toggle').onclick = ()=>{
+    document.documentElement.classList.toggle('light');
+    const isLight = document.documentElement.classList.contains('light');
+    localStorage.setItem('portal-theme', isLight?'light':'dark');
+    updateThemeIcon();
+  };
+}
+function updateThemeIcon(){
+  const btn=document.getElementById('theme-toggle');
+  btn.textContent=document.documentElement.classList.contains('light')?'☀️':'🌙';
+}
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────
+function setupKeyboardShortcuts(){
+  document.addEventListener('keydown', e=>{
+    const tag=document.activeElement?.tagName;
+    const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
+    // Ctrl+K = focus search
+    if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('global-search').focus();return;}
+    // Esc = close modal or search
+    if(e.key==='Escape'){
+      const dd=document.getElementById('search-dropdown');
+      if(dd.style.display!=='none'){dd.style.display='none';return;}
+      if(document.getElementById('overlay').classList.contains('open')){closeModal();return;}
+    }
+    if(inInput) return;
+    // N = nova tarefa
+    if(e.key==='n'&&!e.ctrlKey&&!e.metaKey){openNewTask();return;}
+    // E = novo evento
+    if(e.key==='e'&&!e.ctrlKey&&!e.metaKey){openNewEvent();return;}
+    // 1-5 = navigate pages
+    if(e.key==='1') goPage('dashboard');
+    if(e.key==='2') goPage('chat');
+    if(e.key==='3') goPage('agenda');
+    if(e.key==='4') goPage('tasks');
+    if(e.key==='5') goPage('docs');
+  });
+}
+
+// ── SEARCH ────────────────────────────────────────────────
+function setupSearch(){
+  const input=document.getElementById('global-search');
+  const dd=document.getElementById('search-dropdown');
+  let debounce=null;
+  input.addEventListener('input',()=>{
+    clearTimeout(debounce);
+    debounce=setTimeout(()=>doSearch(input.value.trim()),250);
+  });
+  input.addEventListener('focus',()=>{ if(input.value.trim()) doSearch(input.value.trim()); });
+  document.addEventListener('click',e=>{ if(!document.getElementById('search-wrap').contains(e.target)) dd.style.display='none'; });
+}
+
+async function doSearch(q){
+  const dd=document.getElementById('search-dropdown');
+  if(!q){dd.style.display='none';return;}
+  const ql=q.toLowerCase();
+  const results=[];
+  // Search tasks
+  (window._tasks||[]).forEach(t=>{
+    if(t.titulo.toLowerCase().includes(ql)||(t.descricao||'').toLowerCase().includes(ql))
+      results.push({ico:'📋',name:t.titulo,meta:'Tarefa · '+({pendente:'Pendente',em_andamento:'Em andamento',concluida:'Concluída'}[t.status]||t.status),action:()=>{goPage('tasks');openEditTask(t.id);}});
+  });
+  // Search docs
+  (allDocs||[]).forEach(d=>{
+    if((d.nome||'').toLowerCase().includes(ql)||(d.arquivo_nome||'').toLowerCase().includes(ql))
+      results.push({ico:'📄',name:d.nome||d.arquivo_nome,meta:'Documento',action:()=>goPage('docs')});
+  });
+  // Search events
+  (window._events||[]).forEach(ev=>{
+    if(ev.titulo.toLowerCase().includes(ql))
+      results.push({ico:'📅',name:ev.titulo,meta:'Evento · '+fmtDate(ev.data_inicio),action:()=>{goPage('agenda');openEditEvent(ev.id);}});
+  });
+  // Search entidades
+  _entidades.forEach(e=>{
+    if(e.nome.toLowerCase().includes(ql))
+      results.push({ico:e.icone||'🏢',name:e.nome,meta:'Empresa',action:()=>{}});
+  });
+  if(!results.length){dd.innerHTML='<div class="search-empty">Nenhum resultado para "'+esc(q)+'"</div>';dd.style.display='block';return;}
+  dd.innerHTML=results.slice(0,8).map((r,i)=>`<div class="search-item" data-idx="${i}"><span class="search-item-ico">${r.ico}</span><div class="search-item-info"><div class="search-item-name">${esc(r.name)}</div><div class="search-item-meta">${esc(r.meta)}</div></div></div>`).join('');
+  dd.style.display='block';
+  dd.querySelectorAll('.search-item').forEach((el,i)=>{ el.onclick=()=>{dd.style.display='none';document.getElementById('global-search').value='';results[i].action();}; });
+}
+
+// ── EMPRESA FILTER ────────────────────────────────────────
+function populateEmpresaFilter(){
+  const sel=document.getElementById('task-filter-empresa');
+  if(!sel) return;
+  _entidades.forEach(e=>{
+    const opt=document.createElement('option');
+    opt.value=e.id; opt.textContent=e.icone+' '+e.nome;
+    sel.appendChild(opt);
+  });
+}
+function getEntidadeNome(id){ const e=_entidades.find(x=>x.id===id); return e?e.icone+' '+e.nome:''; }
 
 // ── DASHBOARD ────────────────────────────────────────────
 async function loadDashboard(){
-  const{data:tasks}=await sb.from('tarefas').select('*').limit(100);
-  const{data:docs}=await sb.from('documentos').select('id').limit(1000);
+  const[{data:tasks},{data:docs},{data:events}]=await Promise.all([
+    sb.from('tarefas').select('*').limit(200),
+    sb.from('documentos').select('id').limit(1000),
+    sb.from('eventos').select('*').gte('data_inicio',new Date().toISOString()).order('data_inicio').limit(20)
+  ]);
   const pend=(tasks||[]).filter(t=>t.status==='pendente'||t.status==='em_andamento');
   document.getElementById('sc-pend').textContent=pend.length;
   document.getElementById('sc-docs').textContent=(docs||[]).length;
+  document.getElementById('sc-eventos').textContent=(events||[]).filter(e=>{const d=new Date(e.data_inicio);const t=new Date();return d.toDateString()===t.toDateString();}).length;
   document.getElementById('tasks-badge').textContent=pend.length;
-  // Recent tasks table
   renderRecentTasksTable(tasks||[]);
-  // Charts
   renderMainChart(tasks||[]);
   renderPieChart(tasks||[]);
 }
@@ -747,13 +936,10 @@ function renderMainChart(tasks){
   if(mainChartInst) mainChartInst.destroy();
   mainChartInst=new Chart(ctx,{
     type:'line',
-    data:{
-      labels,
-      datasets:[
-        {label:'Criadas',data:created,borderColor:'#00C9A7',backgroundColor:'rgba(0,201,167,.15)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#00C9A7'},
-        {label:'Concluídas',data:done,borderColor:'#4A90D9',backgroundColor:'rgba(74,144,217,.12)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#4A90D9'}
-      ]
-    },
+    data:{labels,datasets:[
+      {label:'Criadas',data:created,borderColor:'#00C9A7',backgroundColor:'rgba(0,201,167,.15)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#00C9A7'},
+      {label:'Concluídas',data:done,borderColor:'#4A90D9',backgroundColor:'rgba(74,144,217,.12)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#4A90D9'}
+    ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1E2435',titleColor:'#EEF2FF',bodyColor:'#C8D0E0',borderColor:'#2A3148',borderWidth:1}},scales:{x:{grid:{color:'rgba(42,49,72,.5)'},ticks:{color:'#6B7A99',font:{size:11}}},y:{grid:{color:'rgba(42,49,72,.5)'},ticks:{color:'#6B7A99',font:{size:11},stepSize:1,precision:0}}}}
   });
 }
@@ -761,26 +947,41 @@ function renderMainChart(tasks){
 function renderPieChart(tasks){
   const ctx=document.getElementById('pie-chart');
   if(!ctx) return;
-  const empresas=['Pincel','CEDTEC','Gráfica','Agência','Sítio','Geral'];
-  const vals=[2,3,1,2,1,Math.max(tasks.length,1)];
+  // Real data: count tasks per entidade
+  const labels=[], vals=[], colors=[];
+  let semEmpresa=0;
+  _entidades.forEach(e=>{
+    const count=tasks.filter(t=>t.entidade_id===e.id).length;
+    if(count>0){ labels.push(e.nome); vals.push(count); colors.push(e.cor||'#6B7A99'); }
+  });
+  semEmpresa=tasks.filter(t=>!t.entidade_id).length;
+  if(semEmpresa>0){ labels.push('Sem empresa'); vals.push(semEmpresa); colors.push('#00C9A7'); }
+  if(!vals.length){ labels.push('Nenhuma tarefa'); vals.push(1); colors.push('#2A3148'); }
   if(pieChartInst) pieChartInst.destroy();
   pieChartInst=new Chart(ctx,{
     type:'doughnut',
-    data:{labels:empresas,datasets:[{data:vals,backgroundColor:['#4A90D9','#F5A623','#E8533F','#8B5CF6','#22C55E','#00C9A7'],borderColor:'#1E2435',borderWidth:2}]},
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderColor:'#1E2435',borderWidth:2}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#6B7A99',font:{size:11},padding:12,boxWidth:12}},tooltip:{backgroundColor:'#1E2435',titleColor:'#EEF2FF',bodyColor:'#C8D0E0',borderColor:'#2A3148',borderWidth:1}}}
   });
 }
 
 // ── TASKS / KANBAN ────────────────────────────────────────
 async function loadTasks(){
-  const{data}=await sb.from('tarefas').select('*').order('criado_em',{ascending:false}).limit(100);
+  const{data}=await sb.from('tarefas').select('*').order('criado_em',{ascending:false}).limit(200);
   window._tasks=data||[];
   renderKanban();
   document.getElementById('tasks-badge').textContent=(data||[]).filter(t=>t.status==='pendente'||t.status==='em_andamento').length;
 }
 
 function renderKanban(){
-  const tasks=window._tasks||[];
+  let tasks=window._tasks||[];
+  // Filter by empresa
+  const filterEmp=document.getElementById('task-filter-empresa')?.value;
+  if(filterEmp) tasks=tasks.filter(t=>t.entidade_id===filterEmp);
+  // Sort by priority
+  const prioOrder={urgente:0,alta:1,media:2,baixa:3};
+  tasks=[...tasks].sort((a,b)=>(prioOrder[a.prioridade]??2)-(prioOrder[b.prioridade]??2));
+
   const cols=[
     {key:'pendente',label:'📋 Pendente',color:'var(--blue)'},
     {key:'em_andamento',label:'⚡ Em andamento',color:'var(--gold)'},
@@ -788,7 +989,6 @@ function renderKanban(){
   ];
   const board=document.getElementById('kanban-board');
   board.innerHTML='';
-  const prioMap={urgente:'urgente',alta:'alta',media:'media',baixa:'baixa'};
   cols.forEach(col=>{
     const items=tasks.filter(t=>t.status===col.key);
     const el=document.createElement('div');
@@ -798,24 +998,73 @@ function renderKanban(){
         <div class="kanban-ttl"><span style="color:${col.color}">●</span> ${col.label} <span class="kanban-cnt">${items.length}</span></div>
         <span class="kanban-add" onclick="openNewTask('${col.key}')">＋</span>
       </div>
-      <div class="kanban-body" id="col-${col.key}">
-        ${items.length===0?'<div style="text-align:center;color:var(--text3);font-size:12px;padding:16px">Nenhuma</div>':''}
-        ${items.map(t=>`
-          <div class="task-card" onclick="openEditTask('${t.id}')">
+      <div class="kanban-body" id="col-${col.key}" data-status="${col.key}">
+        ${items.length===0?'<div class="kanban-placeholder" style="text-align:center;color:var(--text3);font-size:12px;padding:16px">Arraste tarefas aqui</div>':''}
+        ${items.map(t=>{
+          const empLabel=getEntidadeNome(t.entidade_id);
+          return `
+          <div class="task-card" draggable="true" data-id="${t.id}" onclick="openEditTask('${t.id}')">
             <div class="task-ttl">${esc(t.titulo)}</div>
+            ${t.descricao?`<div class="task-desc">${esc(t.descricao)}</div>`:''}
             <div class="task-footer">
-              <span class="prio ${prioMap[t.prioridade]||'media'}">${t.prioridade||'média'}</span>
+              <div class="row" style="gap:6px;flex-wrap:wrap">
+                <span class="prio ${t.prioridade||'media'}">${t.prioridade||'média'}</span>
+                ${empLabel?`<span class="task-empresa">${empLabel}</span>`:''}
+              </div>
               <span class="task-date">${t.data_vencimento?fmtDate(t.data_vencimento):''}</span>
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
     board.appendChild(el);
+  });
+  // Setup drag & drop
+  setupDragDrop();
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────
+function setupDragDrop(){
+  const cards=document.querySelectorAll('.task-card[draggable]');
+  const cols=document.querySelectorAll('.kanban-body');
+  cards.forEach(card=>{
+    card.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('text/plain',card.dataset.id);
+      card.classList.add('dragging');
+      // Prevent click from firing after drag
+      card._dragging=true;
+      setTimeout(()=>card._dragging=false,300);
+    });
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+    // Override onclick during drag
+    const origClick=card.onclick;
+    card.onclick=function(e){ if(this._dragging){e.stopPropagation();return;} openEditTask(this.dataset.id); };
+  });
+  cols.forEach(col=>{
+    col.addEventListener('dragover',e=>{e.preventDefault();col.classList.add('drag-over');});
+    col.addEventListener('dragleave',()=>col.classList.remove('drag-over'));
+    col.addEventListener('drop',async e=>{
+      e.preventDefault();col.classList.remove('drag-over');
+      const id=e.dataTransfer.getData('text/plain');
+      const newStatus=col.dataset.status;
+      if(!id||!newStatus) return;
+      const task=(window._tasks||[]).find(t=>t.id===id);
+      if(!task||task.status===newStatus) return;
+      const update={status:newStatus};
+      if(newStatus==='concluida') update.data_conclusao=new Date().toISOString();
+      await sb.from('tarefas').update(update).eq('id',id);
+      await loadTasks();
+      showToast('✅','Tarefa movida para '+(newStatus==='pendente'?'Pendente':newStatus==='em_andamento'?'Em andamento':'Concluída'),'');
+    });
   });
 }
 
 function openNewTask(status='pendente'){
+  const empOpts=_entidades.map(e=>`<option value="${e.id}">${e.icone} ${esc(e.nome)}</option>`).join('');
   openModal('Nova Tarefa','Preencha os dados da tarefa',`
     <label class="m-label">Título</label><input class="m-input" id="m-task-ttl" placeholder="Ex: Revisar contrato da gráfica">
+    <label class="m-label">Descrição (opcional)</label><textarea class="m-textarea" id="m-task-desc" placeholder="Detalhes da tarefa..." rows="2"></textarea>
+    <label class="m-label">Empresa</label>
+    <select class="m-select" id="m-task-emp"><option value="">Sem empresa</option>${empOpts}</select>
     <label class="m-label">Prioridade</label>
     <select class="m-select" id="m-task-prio"><option value="baixa">🟢 Baixa</option><option value="media" selected>🟡 Média</option><option value="alta">🔴 Alta</option><option value="urgente">🚨 Urgente</option></select>
     <label class="m-label">Data de vencimento</label><input class="m-input" type="date" id="m-task-date">
@@ -826,8 +1075,8 @@ function openNewTask(status='pendente'){
     {label:'Criar tarefa',cls:'btn-confirm',action:async()=>{
       const titulo=document.getElementById('m-task-ttl').value.trim();
       if(!titulo){showToast('⚠️','Preencha o título','');return;}
-      await sb.from('tarefas').insert({titulo,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null});
-      closeModal(); loadTasks(); showToast('✅','Tarefa criada!','');
+      await sb.from('tarefas').insert({titulo,descricao:document.getElementById('m-task-desc').value.trim()||null,entidade_id:document.getElementById('m-task-emp').value||null,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null});
+      closeModal(); loadTasks(); loadDashboard(); showToast('✅','Tarefa criada!','');
     }}
   ]);
 }
@@ -835,20 +1084,27 @@ function openNewTask(status='pendente'){
 function openEditTask(id){
   const t=(window._tasks||[]).find(x=>x.id===id);
   if(!t) return;
+  const empOpts=_entidades.map(e=>`<option value="${e.id}" ${t.entidade_id===e.id?'selected':''}>${e.icone} ${esc(e.nome)}</option>`).join('');
+  const dateVal=t.data_vencimento?t.data_vencimento.split('T')[0]:'';
   openModal('Editar Tarefa','',`
     <label class="m-label">Título</label><input class="m-input" id="m-task-ttl" value="${esc(t.titulo)}">
+    <label class="m-label">Descrição</label><textarea class="m-textarea" id="m-task-desc" rows="2">${esc(t.descricao||'')}</textarea>
+    <label class="m-label">Empresa</label>
+    <select class="m-select" id="m-task-emp"><option value="">Sem empresa</option>${empOpts}</select>
     <label class="m-label">Prioridade</label>
     <select class="m-select" id="m-task-prio"><option value="baixa" ${t.prioridade==='baixa'?'selected':''}>🟢 Baixa</option><option value="media" ${t.prioridade==='media'?'selected':''}>🟡 Média</option><option value="alta" ${t.prioridade==='alta'?'selected':''}>🔴 Alta</option><option value="urgente" ${t.prioridade==='urgente'?'selected':''}>🚨 Urgente</option></select>
     <label class="m-label">Status</label>
     <select class="m-select" id="m-task-status"><option value="pendente" ${t.status==='pendente'?'selected':''}>Pendente</option><option value="em_andamento" ${t.status==='em_andamento'?'selected':''}>Em andamento</option><option value="concluida" ${t.status==='concluida'?'selected':''}>Concluída</option></select>
-    <label class="m-label">Data de vencimento</label><input class="m-input" type="date" id="m-task-date" value="${t.data_vencimento||''}">
+    <label class="m-label">Data de vencimento</label><input class="m-input" type="date" id="m-task-date" value="${dateVal}">
   `,[
-    {label:'Excluir',cls:'btn-cancel',style:'color:var(--red2)',action:async()=>{if(confirm('Excluir tarefa?')){await sb.from('tarefas').delete().eq('id',id);closeModal();loadTasks();showToast('🗑️','Tarefa excluída','');}}},
+    {label:'Excluir',cls:'btn-cancel',style:'color:var(--red2)',action:async()=>{if(confirm('Excluir tarefa?')){await sb.from('tarefas').delete().eq('id',id);closeModal();loadTasks();loadDashboard();showToast('🗑️','Tarefa excluída','');}}},
     {label:'Salvar',cls:'btn-confirm',action:async()=>{
       const titulo=document.getElementById('m-task-ttl').value.trim();
       if(!titulo) return;
-      await sb.from('tarefas').update({titulo,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null}).eq('id',id);
-      closeModal(); loadTasks(); showToast('✅','Tarefa atualizada','');
+      const update={titulo,descricao:document.getElementById('m-task-desc').value.trim()||null,entidade_id:document.getElementById('m-task-emp').value||null,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null};
+      if(update.status==='concluida'&&t.status!=='concluida') update.data_conclusao=new Date().toISOString();
+      await sb.from('tarefas').update(update).eq('id',id);
+      closeModal(); loadTasks(); loadDashboard(); showToast('✅','Tarefa atualizada','');
     }}
   ]);
 }
@@ -1132,12 +1388,37 @@ async function sendMsg(){
   }
   isSending=false;
 }
+function renderMarkdown(text){
+  let html=esc(text);
+  // Code blocks
+  html=html.replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre><code>$2</code></pre>');
+  // Inline code
+  html=html.replace(/`([^`]+)`/g,'<code>$1</code>');
+  // Bold
+  html=html.replace(/\*\*(.*?)\*\*/g,'<b>$1</b>');
+  // Italic
+  html=html.replace(/\*(.*?)\*/g,'<em>$1</em>');
+  // Links
+  html=html.replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Unordered lists
+  html=html.replace(/^[•\-]\s+(.+)/gm,'<li>$1</li>');
+  html=html.replace(/(<li>.*<\/li>\n?)+/g,'<ul>$&</ul>');
+  // Ordered lists
+  html=html.replace(/^\d+\.\s+(.+)/gm,'<li>$1</li>');
+  // Newlines (outside pre)
+  html=html.replace(/\n/g,'<br>');
+  // Clean up extra br in pre
+  html=html.replace(/<pre><code>([\s\S]*?)<\/code><\/pre>/g,(m,c)=>'<pre><code>'+c.replace(/<br>/g,'\n')+'</code></pre>');
+  return html;
+}
+
 function appendMsg(role,text,ts){
   const msgs=document.getElementById('chat-msgs'),div=document.createElement('div');
   div.className='msg '+role;
   const t=ts?new Date(ts):new Date();
   const now=t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  div.innerHTML=`<div class="bubble">${esc(text).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')}</div><div class="msg-t">${now}</div>`;
+  const content=role==='u'?esc(text).replace(/\n/g,'<br>'):renderMarkdown(text);
+  div.innerHTML=`<div class="bubble">${content}</div><div class="msg-t">${now}</div>`;
   msgs.appendChild(div); scrollChat();
 }
 function scrollChat(){const m=document.getElementById('chat-msgs');m.scrollTop=m.scrollHeight;}
@@ -1184,18 +1465,140 @@ async function handleActionEvento(d){if(!d)return;await sb.from('eventos').inser
 async function handleActionGasto(d){if(!d)return;await sb.from('sitio_lancamentos').insert({descricao:d.descricao||'Gasto',valor:d.valor||0,tipo:'gasto',data_lancamento:new Date().toISOString().split('T')[0]});showToast('💰','Gasto registrado!','');}
 
 // ── AGENDA ────────────────────────────────────────────────
+window._events=[];
+
+async function loadAgenda(){
+  const{data}=await sb.from('eventos').select('*').order('data_inicio',{ascending:true}).limit(200);
+  window._events=data||[];
+  renderAgendaList();
+  renderMiniCalendar();
+  renderAgendaStats();
+}
+
+function renderAgendaList(){
+  const wrap=document.getElementById('agenda-events-list');
+  const events=window._events;
+  if(!events.length){wrap.innerHTML='<div class="agenda-empty">📅 Nenhum evento — clique em "+ Novo evento" para criar.</div>';return;}
+  // Group by date
+  const groups={};
+  const now=new Date(); now.setHours(0,0,0,0);
+  events.forEach(ev=>{
+    const d=new Date(ev.data_inicio);
+    const key=d.toISOString().split('T')[0];
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(ev);
+  });
+  const days=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  let html='';
+  // Show upcoming (from today) + past (last 7 days)
+  const pastLimit=new Date(now); pastLimit.setDate(pastLimit.getDate()-7);
+  const sortedKeys=Object.keys(groups).sort();
+  sortedKeys.forEach(key=>{
+    const d=new Date(key+'T12:00:00');
+    const isToday=d.toDateString()===now.toDateString();
+    const tomorrow=new Date(now); tomorrow.setDate(now.getDate()+1);
+    const isTomorrow=d.toDateString()===tomorrow.toDateString();
+    const isPast=d<now&&!isToday;
+    const label=isToday?'Hoje':isTomorrow?'Amanhã':`${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+    const evColors=['#00C9A7','#4A90D9','#F5A623','#8B5CF6','#E8533F','#22C55E'];
+    html+=`<div class="agenda-day${isPast?' past':''}"><div class="agenda-day-label">${label}</div>`;
+    groups[key].forEach((ev,i)=>{
+      const t=new Date(ev.data_inicio);
+      const time=ev.dia_inteiro?'Dia todo':t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      const color=ev.cor||evColors[i%evColors.length];
+      html+=`<div class="agenda-ev" onclick="openEditEvent('${ev.id}')">
+        <div class="agenda-ev-bar" style="background:${color}"></div>
+        <div class="agenda-ev-time">${time}</div>
+        <div><div class="agenda-ev-title">${esc(ev.titulo)}</div>${ev.local?`<div class="agenda-ev-loc">📍 ${esc(ev.local)}</div>`:''}</div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
+}
+
+function renderMiniCalendar(){
+  const cal=document.getElementById('mini-calendar');
+  const now=new Date();
+  const year=now.getFullYear(), month=now.getMonth();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const months=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('cal-month-label').textContent=months[month]+' '+year;
+  // Days with events
+  const eventDays=new Set();
+  (window._events||[]).forEach(ev=>{
+    const d=new Date(ev.data_inicio);
+    if(d.getMonth()===month&&d.getFullYear()===year) eventDays.add(d.getDate());
+  });
+  let html='<div class="agenda-mini-cal">';
+  ['D','S','T','Q','Q','S','S'].forEach(d=>html+=`<div class="cal-dow">${d}</div>`);
+  // Blanks for days before 1st
+  for(let i=0;i<firstDay;i++) html+='<div class="cal-day other"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=d===now.getDate();
+    const hasEv=eventDays.has(d);
+    html+=`<div class="cal-day${isToday?' today':''}${hasEv?' has-event':''}">${d}</div>`;
+  }
+  html+='</div>';
+  cal.innerHTML=html;
+}
+
+function renderAgendaStats(){
+  const events=window._events||[];
+  const now=new Date();
+  // This week
+  const weekStart=new Date(now); weekStart.setDate(now.getDate()-now.getDay());weekStart.setHours(0,0,0,0);
+  const weekEnd=new Date(weekStart); weekEnd.setDate(weekStart.getDate()+7);
+  const weekCount=events.filter(e=>{const d=new Date(e.data_inicio);return d>=weekStart&&d<weekEnd;}).length;
+  // This month
+  const monthCount=events.filter(e=>{const d=new Date(e.data_inicio);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();}).length;
+  // Next event
+  const future=events.filter(e=>new Date(e.data_inicio)>now);
+  const next=future.length?future[0]:null;
+  document.getElementById('ev-week-count').textContent=weekCount;
+  document.getElementById('ev-month-count').textContent=monthCount;
+  document.getElementById('ev-next-label').textContent=next?next.titulo+' · '+fmtDate(next.data_inicio):'Nenhum';
+}
+
 function openNewEvent(){
+  const empOpts=_entidades.map(e=>`<option value="${e.id}">${e.icone} ${esc(e.nome)}</option>`).join('');
   openModal('Novo Evento','',`
     <label class="m-label">Título</label><input class="m-input" id="m-ev-ttl" placeholder="Ex: Reunião com fornecedor">
     <label class="m-label">Data e hora</label><input class="m-input" type="datetime-local" id="m-ev-dt">
     <label class="m-label">Local (opcional)</label><input class="m-input" id="m-ev-local" placeholder="Ex: Vila Velha">
+    <label class="m-label">Empresa</label>
+    <select class="m-select" id="m-ev-emp"><option value="">Sem empresa</option>${empOpts}</select>
   `,[
     {label:'Cancelar',cls:'btn-cancel',action:closeModal},
     {label:'Criar evento',cls:'btn-confirm',action:async()=>{
       const titulo=document.getElementById('m-ev-ttl').value.trim();
+      if(!titulo){showToast('⚠️','Preencha o título','');return;}
+      await sb.from('eventos').insert({titulo,data_inicio:document.getElementById('m-ev-dt').value?new Date(document.getElementById('m-ev-dt').value).toISOString():new Date().toISOString(),local:document.getElementById('m-ev-local').value||null,entidade_id:document.getElementById('m-ev-emp').value||null,notificar_minutos:30});
+      closeModal(); loadAgenda(); showToast('📅','Evento criado!','');
+    }}
+  ]);
+}
+
+function openEditEvent(id){
+  const ev=(window._events||[]).find(x=>x.id===id);
+  if(!ev) return;
+  const empOpts=_entidades.map(e=>`<option value="${e.id}" ${ev.entidade_id===e.id?'selected':''}>${e.icone} ${esc(e.nome)}</option>`).join('');
+  const dtVal=ev.data_inicio?new Date(ev.data_inicio).toISOString().slice(0,16):'';
+  openModal('Editar Evento','',`
+    <label class="m-label">Título</label><input class="m-input" id="m-ev-ttl" value="${esc(ev.titulo)}">
+    <label class="m-label">Data e hora</label><input class="m-input" type="datetime-local" id="m-ev-dt" value="${dtVal}">
+    <label class="m-label">Local</label><input class="m-input" id="m-ev-local" value="${esc(ev.local||'')}">
+    <label class="m-label">Empresa</label>
+    <select class="m-select" id="m-ev-emp"><option value="">Sem empresa</option>${empOpts}</select>
+  `,[
+    {label:'Excluir',cls:'btn-cancel',style:'color:var(--red2)',action:async()=>{if(confirm('Excluir evento?')){await sb.from('eventos').delete().eq('id',id);closeModal();loadAgenda();showToast('🗑️','Evento excluído','');}}},
+    {label:'Salvar',cls:'btn-confirm',action:async()=>{
+      const titulo=document.getElementById('m-ev-ttl').value.trim();
       if(!titulo) return;
-      await sb.from('eventos').insert({titulo,data_inicio:document.getElementById('m-ev-dt').value?new Date(document.getElementById('m-ev-dt').value).toISOString():new Date().toISOString(),local:document.getElementById('m-ev-local').value,notificar_minutos:30});
-      closeModal(); showToast('📅','Evento criado!','');
+      await sb.from('eventos').update({titulo,data_inicio:document.getElementById('m-ev-dt').value?new Date(document.getElementById('m-ev-dt').value).toISOString():ev.data_inicio,local:document.getElementById('m-ev-local').value||null,entidade_id:document.getElementById('m-ev-emp').value||null}).eq('id',id);
+      closeModal(); loadAgenda(); showToast('✅','Evento atualizado','');
     }}
   ]);
 }
@@ -1285,6 +1688,12 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function fmtDate(s){try{return new Date(s).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit'});}catch(e){return s;}}
 window.goPage=goPage;
 window.openNewTask=openNewTask;
+window.openEditTask=openEditTask;
+window.openNewEvent=openNewEvent;
+window.openEditEvent=openEditEvent;
+window.clearChat=clearChat;
+window.renderKanban=renderKanban;
+window.showGcalModal=showGcalModal;
 </script>
 </body>
 </html>
