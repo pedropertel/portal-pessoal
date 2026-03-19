@@ -1550,8 +1550,36 @@ async function handleActionTarefa(d){
   await loadDashboard();
   showToast('✅','Tarefa criada!',titulo);
 }
-async function handleActionEvento(d){if(!d)return;await sb.from('eventos').insert({titulo:d.titulo||'Evento',data_inicio:d.data_inicio||new Date().toISOString(),notificar_minutos:30});showToast('📅','Evento criado!','');}
-async function handleActionGasto(d){if(!d)return;await sb.from('sitio_lancamentos').insert({descricao:d.descricao||'Gasto',valor:d.valor||0,tipo:'gasto',data_lancamento:new Date().toISOString().split('T')[0]});showToast('💰','Gasto registrado!','');}
+async function handleActionEvento(d){
+  console.log('handleActionEvento chamado com:', d);
+  if(!d) { console.warn('actionData evento é null'); return; }
+  const {data,error} = await sb.from('eventos').insert({
+    titulo: d.titulo || 'Evento',
+    data_inicio: d.data_inicio || new Date().toISOString(),
+    descricao: d.descricao || null,
+    notificar_minutos: 30
+  }).select();
+  if(error) { console.error('Erro ao criar evento:', error); showToast('❌','Erro ao criar evento', error.message); return; }
+  console.log('Evento criado:', data);
+  await loadAgenda();
+  showToast('📅','Evento criado!', d.titulo || '');
+}
+async function handleActionGasto(d){
+  console.log('handleActionGasto chamado com:', d);
+  if(!d) { console.warn('actionData gasto é null'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  const {data,error} = await sb.from('sitio_lancamentos').insert({
+    descricao: d.descricao || 'Gasto',
+    valor: parseFloat(d.valor) || 0,
+    tipo: 'realizado',
+    data_lancamento: today,
+    data_realizada: today,
+    notas: d.notas || null
+  }).select();
+  if(error) { console.error('Erro ao registrar gasto:', error); showToast('❌','Erro ao registrar gasto', error.message); return; }
+  console.log('Gasto registrado:', data);
+  showToast('💰','Gasto registrado!', d.descricao || '');
+}
 
 // ── AGENDA ────────────────────────────────────────────────
 window._events=[];
