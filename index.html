@@ -792,7 +792,7 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
 <div id="push-notif">
   <div class="pn-ico" id="pn-ico">📅</div>
   <div style="flex:1"><div class="pn-title" id="pn-title"></div><div class="pn-msg" id="pn-msg"></div></div>
-  <button class="pn-close" onclick="document.getElementById('push-notif').classList.remove('show')">✕</button>
+  <button class="pn-close" onclick="closeNotif()">✕</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
@@ -898,6 +898,7 @@ function goPage(name){
   const nav=document.querySelector(`.nav-item[data-page="${name}"]`);
   if(page) page.classList.add('active');
   if(nav)  nav.classList.add('active');
+  closeNotif();
   if(name==='docs') loadDocs();
   if(name==='tasks') renderKanban();
   if(name==='dashboard') loadDashboard();
@@ -1877,12 +1878,19 @@ async function checkNotifs(){
     }
   });
 }
+let _notifTimer=null;
+function closeNotif(){
+  if(_notifTimer){clearTimeout(_notifTimer);_notifTimer=null;}
+  document.getElementById('push-notif').classList.remove('show');
+}
 function triggerNotif(title,msg,ico='🌿'){
+  if(_notifTimer){clearTimeout(_notifTimer);_notifTimer=null;}
   document.getElementById('pn-title').textContent=title;
   document.getElementById('pn-msg').textContent=msg;
   document.getElementById('pn-ico').textContent=ico;
   const pn=document.getElementById('push-notif');
-  pn.classList.add('show'); setTimeout(()=>pn.classList.remove('show'),6000);
+  pn.classList.add('show');
+  _notifTimer=setTimeout(()=>{pn.classList.remove('show');_notifTimer=null;},8000);
   try{const ctx=new(window.AudioContext||window.webkitAudioContext)(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.connect(gain);gain.connect(ctx.destination);osc.frequency.setValueAtTime(880,ctx.currentTime);osc.frequency.setValueAtTime(1100,ctx.currentTime+0.1);gain.gain.setValueAtTime(0.3,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);osc.start(ctx.currentTime);osc.stop(ctx.currentTime+0.4);}catch(e){}
   if('Notification' in window&&Notification.permission==='granted') new Notification(title,{body:msg,icon:'/icon-192.png'});
   showToast(ico,title,msg);
@@ -2304,6 +2312,7 @@ window.sitioOpenEditLanc=sitioOpenEditLanc;
 window.sitioDeleteLanc=sitioDeleteLanc;
 window.sitioRenderLancs=sitioRenderLancs;
 window.sitioPreviewAttach=sitioPreviewAttach;
+window.closeNotif=closeNotif;
 window.sitioViewAttach=sitioViewAttach;
 
 async function sitioViewAttach(id){
