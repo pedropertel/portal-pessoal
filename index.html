@@ -1428,11 +1428,23 @@ async function shareDoc(id){
   if(!doc?.arquivo_url){showToast('⚠️','Arquivo sem URL','');return;}
   const{data,error}=await sb.storage.from('documentos').createSignedUrl(doc.arquivo_url,604800);
   if(error||!data?.signedUrl){showToast('❌','Erro ao gerar link','');return;}
+  const nome=doc.arquivo_nome||doc.nome||'arquivo';
+  try{
+    const res=await fetch(data.signedUrl);
+    const blob=await res.blob();
+    const file=new File([blob],nome,{type:blob.type});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:nome});
+      return;
+    }
+  }catch(e){
+    if(e.name==='AbortError') return;
+  }
+  // Fallback: copiar link
   try{
     await navigator.clipboard.writeText(data.signedUrl);
     showToast('🔗','Link copiado!','Válido por 7 dias');
   }catch(e){
-    // Fallback
     prompt('Copie o link:',data.signedUrl);
   }
 }
