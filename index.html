@@ -771,14 +771,14 @@ body {
 </head>
 <body>
 
-<!-- Loading Screen -->
-<div class="loading-screen" id="loading-screen">
+<!-- Loading Screen (só aparece se JS estiver carregando ainda) -->
+<div class="loading-screen" id="loading-screen" style="display:none">
   <div class="loading-mark">🌿</div>
   <div class="loading-text">Carregando portal...</div>
 </div>
 
 <!-- AUTH SCREEN -->
-<div id="auth-screen" style="display:none">
+<div id="auth-screen">
   <div class="auth-logo">
     <div class="auth-logo-mark">🌿</div>
     <div class="auth-title">Portal Pessoal</div>
@@ -988,32 +988,29 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── INIT ─────────────────────────────────────────────────
-async function initApp() {
+// Mostra login imediatamente — sem esperar nada
+document.getElementById('auth-screen').style.display = 'flex';
+
+// Depois verifica em background se já tem sessão ativa
+async function checkSession() {
   try {
-    // Timeout de 4s para não travar se Supabase demorar
-    const sessionPromise = supabase.auth.getSession();
-    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ data: { session: null } }), 4000));
-    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-    document.getElementById('loading-screen').style.display = 'none';
-    if (session) {
-      showApp();
-    } else {
-      document.getElementById('auth-screen').style.display = 'flex';
-    }
-  } catch(e) {
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('auth-screen').style.display = 'flex';
-  }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) showApp();
+  } catch(e) { /* sem sessão, fica no login */ }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    checkSession();
+    buildDayStrip();
+    buildFolders();
+    loadTasks();
+  });
+} else {
+  checkSession();
   buildDayStrip();
   buildFolders();
   loadTasks();
-}
-
-// Iniciar assim que o DOM carregar, sem esperar recursos externos
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
 }
 
 supabase.auth.onAuthStateChange((event, session) => {
