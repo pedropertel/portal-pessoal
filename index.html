@@ -909,9 +909,10 @@ function showCtxMenu(e,id,type,nome=''){
     if(menu.querySelector('#cm-subfolder')) menu.querySelector('#cm-subfolder').onclick=()=>{ menu.remove(); openNewFolder(id); };
     menu.querySelector('#cm-del').onclick=()=>{ menu.remove(); deleteFolder(id,nome); };
   } else {
-    menu.innerHTML=`<div class="ctx-item" id="cm-rename">✏️ Renomear</div><div class="ctx-sep"></div><div class="ctx-item danger" id="cm-del">🗑️ Excluir</div>`;
+    menu.innerHTML=`<div class="ctx-item" id="cm-download">⬇️ Download</div><div class="ctx-item" id="cm-rename">✏️ Renomear</div><div class="ctx-sep"></div><div class="ctx-item danger" id="cm-del">🗑️ Excluir</div>`;
     menu.style.left=e.pageX+'px'; menu.style.top=e.pageY+'px';
     document.body.appendChild(menu);
+    menu.querySelector('#cm-download').onclick=()=>{ menu.remove(); downloadDoc(id); };
     menu.querySelector('#cm-rename').onclick=()=>{ menu.remove(); renameDoc(id,nome); };
     menu.querySelector('#cm-del').onclick=()=>{ menu.remove(); deleteDoc(id,nome); };
   }
@@ -970,13 +971,65 @@ function renameDoc(id,currentName){
   setTimeout(()=>{ const el=document.getElementById('m-dname'); if(el){el.focus();el.select();} },100);
 }
 
+async function downloadDoc(id) {
+  const doc = allDocs.find(d => d.id === id);
+  if (!doc?.arquivo_url) { showToast('⚠️', 'Arquivo sem URL de download', ''); return; }
+  const { data, error } = await sb.storage.from('documentos').createSignedUrl(doc.arquivo_url, 60);
+  if (error || !data?.signedUrl) { showToast('❌', 'Erro ao gerar link', ''); return; }
+  const a = document.createElement('a');
+  a.href = data.signedUrl;
+  a.download = doc.arquivo_nome || doc.nome;
+  a.click();
+}
+
 async function deleteDoc(id,nome){
   if(!confirm(`Excluir "${nome}"?`)) return;
   await sb.from('documentos').delete().eq('id',id);
   await loadDocs(); showToast('🗑️','Arquivo excluído','');
 }
 
-document.getElementById('btn-upload').onclick=()=>showToast('⬆️','Upload de arquivos','Em breve!');
+// ── FILE UPLOAD ───────────────────────────────────────────
+document.getElementById('btn-upload').onclick = () => triggerUpload();
+
+function triggerUpload() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.mp4,.mov,.mp3,.wav';
+  input.onchange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const currentPastaId = docsPath.length ? docsPath[docsPath.length-1].id : null;
+    let ok = 0, fail = 0;
+    showToast('⬆️', `Enviando ${files.length} arquivo(s)...`, '');
+    for (const file of files) {
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        const uid = session?.user?.id || 'user';
+        const path = `${uid}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+        const { data, error } = await sb.storage.from('documentos').upload(path, file, { upsert: false });
+        if (error) throw error;
+        const { data: urlData } = sb.storage.from('documentos').getPublicUrl(path);
+        await sb.from('documentos').insert({
+          nome: file.name,
+          pasta_id: currentPastaId,
+          arquivo_url: data.path,
+          arquivo_nome: file.name,
+          arquivo_tipo: file.type,
+          arquivo_tamanho: file.size,
+        });
+        ok++;
+      } catch (err) {
+        console.error(err);
+        fail++;
+      }
+    }
+    await loadDocs();
+    if (ok > 0) showToast('✅', `${ok} arquivo(s) enviado(s)!`, fail > 0 ? `${fail} com erro` : '');
+    else showToast('❌', 'Erro no upload', 'Tente novamente');
+  };
+  input.click();
+}
 
 // ── CHAT ─────────────────────────────────────────────────
 let chatHistory=[],isSending=false;
