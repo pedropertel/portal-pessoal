@@ -1366,7 +1366,8 @@ async function sendMsg(){
     const data=await res.json();
     typing.remove();
     const reply=data.reply||'Sem resposta.';
-    appendMsg('a',reply);
+    const agente=data.agente||'geral';
+    appendMsg('a',reply,null,agente);
     chatHistory.push({role:'assistant',content:reply});
 
     // Save both messages to DB
@@ -1412,13 +1413,16 @@ function renderMarkdown(text){
   return html;
 }
 
-function appendMsg(role,text,ts){
+const AGENTE_LABELS={tarefas:'📋 Tarefas',agenda:'📅 Agenda',grafica:'🖨️ Gráfica',sitio:'🌱 Sítio',geral:'🤖 Geral'};
+
+function appendMsg(role,text,ts,agente){
   const msgs=document.getElementById('chat-msgs'),div=document.createElement('div');
   div.className='msg '+role;
   const t=ts?new Date(ts):new Date();
   const now=t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   const content=role==='u'?esc(text).replace(/\n/g,'<br>'):renderMarkdown(text);
-  div.innerHTML=`<div class="bubble">${content}</div><div class="msg-t">${now}</div>`;
+  const agenteTag=(role==='a'&&agente&&agente!=='geral')?`<span style="font-size:10px;background:rgba(0,201,167,.15);color:var(--teal);padding:2px 7px;border-radius:8px;font-weight:600">${AGENTE_LABELS[agente]||agente}</span> `:'';
+  div.innerHTML=`<div class="bubble">${content}</div><div class="msg-t">${agenteTag}${now}</div>`;
   msgs.appendChild(div); scrollChat();
 }
 function scrollChat(){const m=document.getElementById('chat-msgs');m.scrollTop=m.scrollHeight;}
