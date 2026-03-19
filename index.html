@@ -12,8 +12,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Portal Pessoal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --bg:       #080E07;
@@ -987,18 +988,33 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ─── INIT ─────────────────────────────────────────────────
-window.addEventListener('load', async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  document.getElementById('loading-screen').style.display = 'none';
-  if (session) {
-    showApp();
-  } else {
+async function initApp() {
+  try {
+    // Timeout de 4s para não travar se Supabase demorar
+    const sessionPromise = supabase.auth.getSession();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve({ data: { session: null } }), 4000));
+    const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+    document.getElementById('loading-screen').style.display = 'none';
+    if (session) {
+      showApp();
+    } else {
+      document.getElementById('auth-screen').style.display = 'flex';
+    }
+  } catch(e) {
+    document.getElementById('loading-screen').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'flex';
   }
   buildDayStrip();
   buildFolders();
   loadTasks();
-});
+}
+
+// Iniciar assim que o DOM carregar, sem esperar recursos externos
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN') showApp();
