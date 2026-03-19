@@ -558,13 +558,6 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
                 <p>Seu assistente pessoal está pronto. Digite ou use o microfone para criar tarefas, agendar eventos, registrar gastos e muito mais.</p>
               </div>
             </div>
-            <div class="chat-chips" id="chips">
-              <div class="chip" data-t="Criar tarefa: ">📋 Nova tarefa</div>
-              <div class="chip" data-t="Agendar: ">📅 Agendar evento</div>
-              <div class="chip" data-t="Registrar gasto no sítio: ">🌱 Gasto sítio</div>
-              <div class="chip" data-t="Pedido gráfica: ">🖨️ Pedido gráfica</div>
-              <div class="chip" data-t="Como está o café arábica? ">☕ Sítio café</div>
-            </div>
             <div class="chat-bar">
               <div class="chat-input-wrap">
                 <textarea class="chat-ta" id="chat-ta" placeholder="Digite ou grave um áudio..." rows="1"></textarea>
@@ -1413,7 +1406,7 @@ const ta=document.getElementById('chat-ta'),sbtn=document.getElementById('send-b
 ta.oninput=function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';sbtn.disabled=!this.value.trim();};
 ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}};
 sbtn.onclick=sendMsg;
-document.querySelectorAll('.chip[data-t]').forEach(c=>c.onclick=()=>{ta.value=c.dataset.t;ta.focus();sbtn.disabled=false;});
+
 
 let recognition=null,isRec=false;
 document.getElementById('mic-btn').onclick=()=>{
@@ -1432,7 +1425,6 @@ async function sendMsg(){
   if(isSending) return;
   const text=ta.value.trim(); if(!text) return;
   document.getElementById('chat-empty').style.display='none';
-  document.getElementById('chips').style.display='none';
   appendMsg('u',text); ta.value=''; ta.style.height='auto'; sbtn.disabled=true;
   chatHistory.push({role:'user',content:text}); isSending=true;
 
@@ -1520,7 +1512,6 @@ async function loadChatHistory(){
   const{data}=await sb.from('chat_mensagens').select('*').order('criado_em',{ascending:true}).limit(100);
   if(!data||!data.length) return;
   document.getElementById('chat-empty').style.display='none';
-  document.getElementById('chips').style.display='none';
   data.forEach(m=>{
     appendMsg(m.role==='user'?'u':'a', m.conteudo, m.criado_em);
     chatHistory.push({role:m.role,content:m.conteudo});
@@ -1535,7 +1526,6 @@ async function clearChat(){
   const empty=document.createElement('div'); empty.className='chat-empty'; empty.id='chat-empty';
   empty.innerHTML='<div class="chat-empty-ico">🤖</div><h3>Olá, Pedro!</h3><p>Histórico limpo. Como posso ajudar?</p>';
   document.getElementById('chat-msgs').appendChild(empty);
-  document.getElementById('chips').style.display='flex';
   showToast('🗑️','Chat limpo!','');
 }
 
