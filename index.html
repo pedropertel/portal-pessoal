@@ -375,6 +375,20 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
 .m-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: var(--r-sm); padding: 10px 13px; color: var(--white); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; transition: border-color .2s; resize: vertical; min-height: 60px; }
 .m-textarea:focus { border-color: var(--teal); }
 
+/* ═══ FILE VIEWER ══════════════════════════════════ */
+#file-viewer { position: fixed; inset: 0; z-index: 850; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; padding: 20px; animation: fadeIn .2s ease; }
+#file-viewer.open { display: flex; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.fv-box { width: 90vw; height: 90vh; background: var(--card); border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; overflow: hidden; animation: slideUp .25s ease; }
+@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.fv-header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.fv-name { flex: 1; font-size: 14px; font-weight: 600; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fv-btn { width: 36px; height: 36px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: background .15s; flex-shrink: 0; }
+.fv-btn:hover { background: var(--card2); }
+.fv-body { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; }
+.fv-body iframe, .fv-body embed { width: 100%; height: 100%; border: none; }
+.fv-body img { max-width: 100%; max-height: 100%; object-fit: contain; touch-action: pinch-zoom; }
+
 /* ═══ SÍTIO MODULE ═════════════════════════════════ */
 .sitio-bar-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
 .sitio-bar-label { font-size: 12px; color: var(--white); font-weight: 500; min-width: 140px; display: flex; align-items: center; gap: 6px; }
@@ -758,6 +772,19 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
   </div>
 </div>
 
+<!-- FILE VIEWER -->
+<div id="file-viewer" onclick="if(event.target===this)closeFileViewer()">
+  <div class="fv-box">
+    <div class="fv-header">
+      <span class="fv-name" id="fv-name"></span>
+      <div class="fv-btn" id="fv-download" title="Baixar">⬇️</div>
+      <div class="fv-btn" id="fv-share" title="Compartilhar link (7 dias)">🔗</div>
+      <div class="fv-btn" onclick="closeFileViewer()" title="Fechar">✕</div>
+    </div>
+    <div class="fv-body" id="fv-body"></div>
+  </div>
+</div>
+
 <!-- TOASTS -->
 <div id="toasts"></div>
 
@@ -902,8 +929,9 @@ function setupKeyboardShortcuts(){
     const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
     // Ctrl+K = focus search
     if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('global-search').focus();return;}
-    // Esc = close modal or search
+    // Esc = close file viewer, modal or search
     if(e.key==='Escape'){
+      if(document.getElementById('file-viewer').classList.contains('open')){closeFileViewer();return;}
       const dd=document.getElementById('search-dropdown');
       if(dd.style.display!=='none'){dd.style.display='none';return;}
       if(document.getElementById('overlay').classList.contains('open')){closeModal();return;}
@@ -1242,7 +1270,7 @@ function renderDocs(){
     const ext=d.arquivo_nome?.split('.').pop()?.toLowerCase()||'';
     const ico=ext==='pdf'?'📄':ext==='jpg'||ext==='png'?'🖼️':ext==='xlsx'||ext==='csv'?'📊':'📎';
     el.innerHTML=`<div class="doc-item-ico">${ico}</div><div class="doc-item-name">${esc(d.nome||d.arquivo_nome||'Arquivo')}</div><div class="doc-item-meta">${d.criado_em?fmtDate(d.criado_em):''}</div><div class="doc-item-menu" data-id="${d.id}" data-type="doc">⋯</div>`;
-    el.addEventListener('click',e=>{ if(!e.target.classList.contains('doc-item-menu')) toggleSelect(el,d.id); });
+    el.addEventListener('click',e=>{ if(!e.target.classList.contains('doc-item-menu')) openFileViewer(d.id); });
     el.querySelector('.doc-item-menu').addEventListener('click',e=>{ e.stopPropagation(); showCtxMenu(e,d.id,'doc',d.nome); });
     grid.appendChild(el);
   });
@@ -1282,10 +1310,12 @@ function showCtxMenu(e,id,type,nome=''){
     if(menu.querySelector('#cm-subfolder')) menu.querySelector('#cm-subfolder').onclick=()=>{ menu.remove(); openNewFolder(id); };
     menu.querySelector('#cm-del').onclick=()=>{ menu.remove(); deleteFolder(id,nome); };
   } else {
-    menu.innerHTML=`<div class="ctx-item" id="cm-download">⬇️ Download</div><div class="ctx-item" id="cm-rename">✏️ Renomear</div><div class="ctx-sep"></div><div class="ctx-item danger" id="cm-del">🗑️ Excluir</div>`;
+    menu.innerHTML=`<div class="ctx-item" id="cm-view">👁️ Visualizar</div><div class="ctx-item" id="cm-download">⬇️ Download</div><div class="ctx-item" id="cm-share">🔗 Compartilhar</div><div class="ctx-item" id="cm-rename">✏️ Renomear</div><div class="ctx-sep"></div><div class="ctx-item danger" id="cm-del">🗑️ Excluir</div>`;
     menu.style.left=e.pageX+'px'; menu.style.top=e.pageY+'px';
     document.body.appendChild(menu);
+    menu.querySelector('#cm-view').onclick=()=>{ menu.remove(); openFileViewer(id); };
     menu.querySelector('#cm-download').onclick=()=>{ menu.remove(); downloadDoc(id); };
+    menu.querySelector('#cm-share').onclick=()=>{ menu.remove(); shareDoc(id); };
     menu.querySelector('#cm-rename').onclick=()=>{ menu.remove(); renameDoc(id,nome); };
     menu.querySelector('#cm-del').onclick=()=>{ menu.remove(); deleteDoc(id,nome); };
   }
@@ -1353,6 +1383,58 @@ async function downloadDoc(id) {
   a.href = data.signedUrl;
   a.download = doc.arquivo_nome || doc.nome;
   a.click();
+}
+
+// ── FILE VIEWER ──────────────────────────────────────────
+const VIEWABLE_IMG = ['jpg','jpeg','png','webp','heic','gif','bmp','svg'];
+const VIEWABLE_PDF = ['pdf'];
+
+async function openFileViewer(id){
+  const doc=allDocs.find(d=>d.id===id);
+  if(!doc?.arquivo_url){showToast('⚠️','Arquivo sem URL','');return;}
+  const ext=(doc.arquivo_nome||doc.nome||'').split('.').pop()?.toLowerCase()||'';
+  const isImg=VIEWABLE_IMG.includes(ext);
+  const isPdf=VIEWABLE_PDF.includes(ext);
+  if(!isImg&&!isPdf){downloadDoc(id);return;}
+  // Get signed URL
+  const{data,error}=await sb.storage.from('documentos').createSignedUrl(doc.arquivo_url,3600);
+  if(error||!data?.signedUrl){showToast('❌','Erro ao abrir arquivo','');return;}
+  const url=data.signedUrl;
+  const viewer=document.getElementById('file-viewer');
+  document.getElementById('fv-name').textContent=doc.nome||doc.arquivo_nome||'Arquivo';
+  const body=document.getElementById('fv-body');
+  if(isPdf){
+    body.innerHTML=`<iframe src="${url}#toolbar=0" style="width:100%;height:100%;border:none"></iframe>`;
+  } else {
+    body.innerHTML=`<img src="${url}" alt="${esc(doc.nome||'')}" style="touch-action:pinch-zoom">`;
+  }
+  // Download button
+  document.getElementById('fv-download').onclick=()=>{
+    const a=document.createElement('a');a.href=url;a.download=doc.arquivo_nome||doc.nome;a.click();
+  };
+  // Share button
+  document.getElementById('fv-share').onclick=()=>shareDoc(id);
+  viewer.classList.add('open');
+}
+
+function closeFileViewer(){
+  const viewer=document.getElementById('file-viewer');
+  viewer.classList.remove('open');
+  document.getElementById('fv-body').innerHTML='';
+}
+
+async function shareDoc(id){
+  const doc=allDocs.find(d=>d.id===id);
+  if(!doc?.arquivo_url){showToast('⚠️','Arquivo sem URL','');return;}
+  const{data,error}=await sb.storage.from('documentos').createSignedUrl(doc.arquivo_url,604800);
+  if(error||!data?.signedUrl){showToast('❌','Erro ao gerar link','');return;}
+  try{
+    await navigator.clipboard.writeText(data.signedUrl);
+    showToast('🔗','Link copiado!','Válido por 7 dias');
+  }catch(e){
+    // Fallback
+    prompt('Copie o link:',data.signedUrl);
+  }
 }
 
 async function deleteDoc(id,nome){
