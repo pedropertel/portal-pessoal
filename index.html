@@ -9,7 +9,6 @@
 <link rel="manifest" href="manifest.json">
 <title>Portal Pessoal</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -457,9 +456,12 @@ body { overflow: hidden; }
 
       <!-- CHAT -->
       <div class="page" id="page-chat">
-        <div>
-          <div class="breadcrumb"><b>Home</b><span>/</span><b>Assistente IA</b></div>
-          <div class="page-title">Assistente IA</div>
+        <div class="row between">
+          <div>
+            <div class="breadcrumb"><b>Home</b><span>/</span><b>Assistente IA</b></div>
+            <div class="page-title">Assistente IA</div>
+          </div>
+          <div class="btn-action" onclick="clearChat()">🗑️ Limpar chat</div>
         </div>
         <div class="chat-layout">
           <div class="chat-main">
@@ -596,17 +598,34 @@ body { overflow: hidden; }
   <button class="pn-close" onclick="document.getElementById('push-notif').classList.remove('show')">✕</button>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script>
 const SURL = 'https://msbwplsknncnxwsalumd.supabase.co';
 const SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zYndwbHNrbm5jbnh3c2FsdW1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTUzMTAsImV4cCI6MjA4OTQzMTMxMH0.qDSAYC8KQO_PQsdRrwsIdYWdkrwqO2riFiDjJ08zctI';
-const sb = window.supabase.createClient(SURL, SKEY);
+
+// Create Supabase client with explicit auth storage
+const sb = window.supabase.createClient(SURL, SKEY, {
+  auth: {
+    storage: window.localStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+});
+
+let notifInterval = null;
+let appInitialized = false;
 
 // ── AUTH ─────────────────────────────────────────────────
 document.getElementById('abtn').onclick = signIn;
-document.getElementById('ae').onkeydown = document.getElementById('ap').onkeydown = e => { if(e.key==='Enter') signIn(); };
-document.getElementById('signout-btn').onclick = () => { if(confirm('Sair do portal?')) sb.auth.signOut(); };
+document.getElementById('ae').onkeydown = e => { if(e.key==='Enter') signIn(); };
+document.getElementById('ap').onkeydown = e => { if(e.key==='Enter') signIn(); };
+document.getElementById('signout-btn').onclick = async () => {
+  if(!confirm('Sair do portal?')) return;
+  if(notifInterval) { clearInterval(notifInterval); notifInterval = null; }
+  appInitialized = false;
+  await sb.auth.signOut();
+};
 
 async function signIn() {
   const email=document.getElementById('ae').value.trim(), pass=document.getElementById('ap').value;
@@ -616,12 +635,22 @@ async function signIn() {
   const{error}=await sb.auth.signInWithPassword({email,password:pass});
   if(error){err.textContent='E-mail ou senha incorretos.';btn.disabled=false;btn.textContent='Entrar';}
 }
-sb.auth.onAuthStateChange((ev,session)=>{
-  if(ev==='SIGNED_IN'){document.getElementById('auth').style.display='none';document.getElementById('app').style.display='flex';initApp();}
-  if(ev==='SIGNED_OUT'){document.getElementById('app').style.display='none';document.getElementById('auth').style.display='flex';}
-});
-sb.auth.getSession().then(({data:{session}})=>{
-  if(session){document.getElementById('auth').style.display='none';document.getElementById('app').style.display='flex';initApp();}
+
+// Single source of truth: ONLY onAuthStateChange drives app state
+sb.auth.onAuthStateChange((ev, session) => {
+  if(ev === 'SIGNED_IN' || ev === 'TOKEN_REFRESHED' || ev === 'INITIAL_SESSION') {
+    if(session && !appInitialized) {
+      document.getElementById('auth').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      appInitialized = true;
+      initApp();
+    }
+  }
+  if(ev === 'SIGNED_OUT') {
+    appInitialized = false;
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth').style.display = 'flex';
+  }
 });
 
 // ── INIT ─────────────────────────────────────────────────
@@ -630,8 +659,11 @@ function initApp(){
   loadDashboard();
   loadTasks();
   loadDocs();
+  loadChatHistory();
   requestNotifPermission();
-  setInterval(checkNotifs,60000);
+  // Clear any existing interval to avoid duplicates
+  if(notifInterval) clearInterval(notifInterval);
+  notifInterval = setInterval(checkNotifs, 60000);
 }
 
 // ── SIDEBAR & NAVIGATION ─────────────────────────────────
@@ -1059,31 +1091,95 @@ async function sendMsg(){
   document.getElementById('chips').style.display='none';
   appendMsg('u',text); ta.value=''; ta.style.height='auto'; sbtn.disabled=true;
   chatHistory.push({role:'user',content:text}); isSending=true;
+
   const typing=document.createElement('div'); typing.className='typing';
   typing.innerHTML='<div class="td"></div><div class="td"></div><div class="td"></div>';
   document.getElementById('chat-msgs').appendChild(typing); scrollChat();
+
   try {
     const{data:{session}}=await sb.auth.getSession();
-    const res=await fetch(SURL+'/functions/v1/chat-claude',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||SKEY)},body:JSON.stringify({messages:chatHistory})});
-    const data=await res.json(); typing.remove();
+    if(!session) throw new Error('Sessão expirada');
+    const token=session.access_token;
+
+    // Call Claude
+    const res=await fetch(SURL+'/functions/v1/chat-claude',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({messages:chatHistory})
+    });
+    const data=await res.json();
+    typing.remove();
     const reply=data.reply||'Sem resposta.';
-    appendMsg('a',reply); chatHistory.push({role:'assistant',content:reply});
-    if(data.action==='tarefa')handleActionTarefa(data.actionData);
-    if(data.action==='evento')handleActionEvento(data.actionData);
-    if(data.action==='gasto')handleActionGasto(data.actionData);
-  } catch(e){ typing.remove(); appendMsg('a','⚠️ Configure ANTHROPIC_API_KEY no Supabase para ativar o assistente.'); }
+    appendMsg('a',reply);
+    chatHistory.push({role:'assistant',content:reply});
+
+    // Save both messages to DB
+    const {error:e1}=await sb.from('chat_mensagens').insert({role:'user',conteudo:text});
+    if(e1) console.error('Erro salvando msg user:',e1);
+    const {error:e2}=await sb.from('chat_mensagens').insert({role:'assistant',conteudo:reply,acao_executada:data.action||null,acao_dados:data.actionData||null});
+    if(e2) console.error('Erro salvando msg assistant:',e2);
+
+    // Execute actions with debug
+    console.log('Action recebida:', data.action, data.actionData);
+    if(data.action==='tarefa') await handleActionTarefa(data.actionData);
+    if(data.action==='evento') await handleActionEvento(data.actionData);
+    if(data.action==='gasto')  await handleActionGasto(data.actionData);
+
+  } catch(e){
+    typing.remove();
+    console.error('Erro no chat:',e);
+    appendMsg('a','⚠️ Erro: '+e.message);
+  }
   isSending=false;
 }
-function appendMsg(role,text){
+function appendMsg(role,text,ts){
   const msgs=document.getElementById('chat-msgs'),div=document.createElement('div');
   div.className='msg '+role;
-  const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const t=ts?new Date(ts):new Date();
+  const now=t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   div.innerHTML=`<div class="bubble">${esc(text).replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')}</div><div class="msg-t">${now}</div>`;
   msgs.appendChild(div); scrollChat();
 }
 function scrollChat(){const m=document.getElementById('chat-msgs');m.scrollTop=m.scrollHeight;}
 
-async function handleActionTarefa(d){if(!d)return;await sb.from('tarefas').insert({titulo:d.titulo||'Nova tarefa',prioridade:d.prioridade||'media'});loadTasks();showToast('✅','Tarefa criada!','');}
+// ── CHAT PERSISTENCE ─────────────────────────────────────
+async function loadChatHistory(){
+  const{data}=await sb.from('chat_mensagens').select('*').order('criado_em',{ascending:true}).limit(100);
+  if(!data||!data.length) return;
+  document.getElementById('chat-empty').style.display='none';
+  document.getElementById('chips').style.display='none';
+  data.forEach(m=>{
+    appendMsg(m.role==='user'?'u':'a', m.conteudo, m.criado_em);
+    chatHistory.push({role:m.role,content:m.conteudo});
+  });
+}
+
+async function clearChat(){
+  if(!confirm('Limpar todo o histórico do chat?')) return;
+  await sb.from('chat_mensagens').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  chatHistory=[];
+  document.getElementById('chat-msgs').innerHTML='';
+  const empty=document.createElement('div'); empty.className='chat-empty'; empty.id='chat-empty';
+  empty.innerHTML='<div class="chat-empty-ico">🤖</div><h3>Olá, Pedro!</h3><p>Histórico limpo. Como posso ajudar?</p>';
+  document.getElementById('chat-msgs').appendChild(empty);
+  document.getElementById('chips').style.display='flex';
+  showToast('🗑️','Chat limpo!','');
+}
+
+async function handleActionTarefa(d){
+  console.log('handleActionTarefa chamado com:', d);
+  if(!d) { console.warn('actionData é null'); return; }
+  const titulo = d.titulo || d.title || d.nome || 'Nova tarefa';
+  const {data,error}=await sb.from('tarefas').insert({
+    titulo, prioridade:d.prioridade||d.priority||'media',
+    status:'pendente', data_vencimento:d.data||d.due_date||null
+  }).select();
+  if(error){ console.error('Erro ao criar tarefa:',error); showToast('❌','Erro ao criar tarefa',error.message); return; }
+  console.log('Tarefa criada:', data);
+  await loadTasks();
+  await loadDashboard();
+  showToast('✅','Tarefa criada!',titulo);
+}
 async function handleActionEvento(d){if(!d)return;await sb.from('eventos').insert({titulo:d.titulo||'Evento',data_inicio:d.data_inicio||new Date().toISOString(),notificar_minutos:30});showToast('📅','Evento criado!','');}
 async function handleActionGasto(d){if(!d)return;await sb.from('sitio_lancamentos').insert({descricao:d.descricao||'Gasto',valor:d.valor||0,tipo:'gasto',data_lancamento:new Date().toISOString().split('T')[0]});showToast('💰','Gasto registrado!','');}
 
