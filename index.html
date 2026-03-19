@@ -280,6 +280,10 @@ body { overflow: hidden; }
 .color-opts { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .color-opt { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: transform .15s; }
 .color-opt.sel { border-color: var(--white); transform: scale(1.15); }
+.ico-grid { display: grid; grid-template-columns: repeat(8, 40px); gap: 4px; margin-top: 4px; }
+.ico-opt { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius: 8px; cursor: pointer; border: 2px solid transparent; background: var(--bg); transition: all .15s; }
+.ico-opt:hover { background: var(--card2); }
+.ico-opt.sel { border-color: var(--teal); background: rgba(0,201,167,.12); transform: scale(1.1); }
 
 /* ═══ NOTIFICATION TOAST ════════════════════════════ */
 #toasts { position: fixed; top: calc(var(--header-h) + 10px); right: 10px; z-index: 900; display: flex; flex-direction: column; gap: 8px; }
@@ -1999,7 +2003,9 @@ function sitioRenderRelat(){
 function sitioOpenNewCentro(){
   openModal('Novo Centro de Custo','',`
     <label class="m-label">Nome</label><input class="m-input" id="m-sc-nome" placeholder="Ex: Lavoura - Banana">
-    <label class="m-label">Ícone</label><input class="m-input" id="m-sc-ico" placeholder="Ex: 🍌" maxlength="4" style="width:80px">
+    <label class="m-label">Ícone</label>
+    <div class="ico-grid" id="m-sc-icos"></div>
+    <input type="hidden" id="m-sc-ico" value="🏷️">
     <label class="m-label">Tipo</label>
     <select class="m-select" id="m-sc-tipo"><option value="lavoura">Lavoura</option><option value="obra">Obra</option><option value="infra">Infraestrutura</option><option value="terreno">Terreno</option><option value="geral">Geral</option></select>
     <label class="m-label">Cor</label>
@@ -2014,6 +2020,7 @@ function sitioOpenNewCentro(){
       closeModal(); await loadSitio(); showToast('✅','Centro criado!','');
     }}
   ]);
+  renderIconPicker('m-sc-icos','m-sc-ico','🏷️');
   renderColorPicker('m-sc-cores','m-sc-cor','#00C9A7');
 }
 
@@ -2022,7 +2029,9 @@ function sitioOpenEditCentro(id){
   if(!c) return;
   openModal('Editar Centro de Custo','',`
     <label class="m-label">Nome</label><input class="m-input" id="m-sc-nome" value="${esc(c.nome)}">
-    <label class="m-label">Ícone</label><input class="m-input" id="m-sc-ico" value="${c.icone||''}" maxlength="4" style="width:80px">
+    <label class="m-label">Ícone</label>
+    <div class="ico-grid" id="m-sc-icos"></div>
+    <input type="hidden" id="m-sc-ico" value="${c.icone||'🏷️'}">
     <label class="m-label">Tipo</label>
     <select class="m-select" id="m-sc-tipo"><option value="lavoura" ${c.tipo==='lavoura'?'selected':''}>Lavoura</option><option value="obra" ${c.tipo==='obra'?'selected':''}>Obra</option><option value="infra" ${c.tipo==='infra'?'selected':''}>Infraestrutura</option><option value="terreno" ${c.tipo==='terreno'?'selected':''}>Terreno</option><option value="geral" ${c.tipo==='geral'?'selected':''}>Geral</option></select>
     <label class="m-label">Cor</label>
@@ -2043,7 +2052,14 @@ function sitioOpenEditCentro(id){
       closeModal(); await loadSitio(); showToast('✅','Centro atualizado!','');
     }}
   ]);
+  renderIconPicker('m-sc-icos','m-sc-ico',c.icone||'🏷️');
   renderColorPicker('m-sc-cores','m-sc-cor',c.cor||'#00C9A7');
+}
+
+function renderIconPicker(containerId,inputId,selected){
+  const icons=['🌱','🌿','🌾','🏔️','🪨','🌳','🌲','🍃','🏠','🏗️','🏚️','🪵','🧱','🔨','🪟','🚪','🔧','⚡','💧','🛣️','🚜','⛏️','🪣','🔩','☕','🫒','🌻','🌽','🍅','🫘','🍵','🏷️','💰','📋','🗂️','📦','🚛','🔑','📐','🗃️'];
+  const cont=document.getElementById(containerId);
+  cont.innerHTML=icons.map(i=>`<div class="ico-opt${i===selected?' sel':''}" onclick="document.getElementById('${inputId}').value='${i}';document.querySelectorAll('#${containerId} .ico-opt').forEach(x=>x.classList.remove('sel'));this.classList.add('sel')">${i}</div>`).join('');
 }
 
 function renderColorPicker(containerId,inputId,selected){
