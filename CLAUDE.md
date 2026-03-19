@@ -120,7 +120,7 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 ### 6. Sítio Monte da Vitória (`page-sitio`)
 - 5 sub-abas: Visão geral, Lançamentos, Centros de custo, Cronograma, Relatórios
 - **Visão geral**: 4 stat cards (total investido, gasto mensal, planejado 3 meses, qtd centros), barras de progresso por centro, últimos lançamentos
-- **Lançamentos**: tabela com filtros por centro de custo e tipo (realizado/planejado), CRUD completo
+- **Lançamentos**: tabela com filtros por centro de custo e tipo (realizado/planejado), CRUD completo, anexo de comprovantes (foto/arquivo/PDF), ícone 📎 clicável na tabela
 - **Centros de custo**: grid de cards com ícone, cor, tipo e valor. CRUD com color picker
 - **Cronograma**: gráfico de barras realizado vs planejado por mês (6 passados + 3 futuros)
 - **Relatórios**: gráfico de pizza por centro de custo + resumo financeiro
@@ -209,7 +209,7 @@ portal-pessoal/
 **Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`
 **Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`
 **Agenda**: `loadAgenda`, `renderAgendaList`, `renderMiniCalendar`, `renderAgendaStats`, `openNewEvent`, `openEditEvent`
-**Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `renderColorPicker`, `fmtMoney`
+**Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
 **Notificações**: `checkNotifs`, `triggerNotif`, `requestNotifPermission`
 **UI**: `openModal`, `closeModal`, `showToast`, `esc`, `fmtDate`
 
@@ -233,7 +233,7 @@ grafica_conciliacao    — conciliação bancária (módulo pendente)
 meta_conexoes          — conexões Meta/Facebook (módulo pendente)
 meta_campanhas_cache   — cache de campanhas Meta (módulo pendente)
 sitio_categorias       — centros de custo do sítio (nome, cor, icone, tipo: terreno/obra/lavoura/infra/geral)
-sitio_lancamentos      — lançamentos financeiros (descricao, valor, centro_custo_id, tipo: realizado/planejado, data_prevista, data_realizada, notas)
+sitio_lancamentos      — lançamentos financeiros (descricao, valor, centro_custo_id, tipo: realizado/planejado, data_prevista, data_realizada, notas, comprovante_url)
 ```
 
 Todas com RLS habilitado, policy `allow_authenticated_*` com `USING (true)`.
@@ -263,4 +263,6 @@ Grants: SELECT, INSERT, UPDATE, DELETE para `authenticated` e `anon`.
 
 10. **Busca** — roda no client-side sobre dados já carregados (`_tasks`, `allDocs`, `_events`, `_entidades`). Não faz query ao banco.
 
-11. **Módulo Sítio** — dados em `_sitioCentros` e `_sitioLancs`. Carregados sob demanda ao navegar para a página. Gráficos usando Chart.js (bar chart para cronograma, doughnut para relatórios). `fmtMoney()` formata valores em R$.
+11. **Módulo Sítio** — dados em `_sitioCentros` e `_sitioLancs`. `_sitioCentros` é carregado no `initApp()` (necessário para `handleActionGasto` no chat). Gráficos usando Chart.js. `fmtMoney()` formata valores. `parseDateBR()` converte DD/MM/AAAA → YYYY-MM-DD. Anexos/comprovantes são uploadeados para `documentos/sitio/comprovantes/` no Supabase Storage.
+
+12. **Datas brasileiras** — `parseDateBR()` aceita DD/MM/AAAA, DD-MM-AAAA e DD.MM.AA. Edge Function instrui Claude a retornar datas no formato DD/MM/AAAA. O frontend converte para ISO antes de salvar no banco.
