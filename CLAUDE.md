@@ -120,15 +120,13 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 - Menu de contexto: Visualizar, Download, Compartilhar, Renomear, Excluir
 
 ### 6. CEDTEC (`page-cedtec`)
-- 7 sub-abas: Conexão Meta, Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar SGE
-- **Conexão Meta**: formulário editável (Ad Account ID + Access Token com toggle 👁), salva em `meta_conexoes`, 3 estados (vermelho=desconectado, amarelo=configurado, verde=conectado), sync automática ao salvar, instruções de configuração. Credenciais lidas pela Edge Function via service_role (grants configurados). Token real preenchido no input para edição.
-- **Visão geral**: alerta vermelho quando saldo Meta < 3 dias, 4 stat cards + CPL/CTR com badges de alerta, gráfico Gasto vs Leads, campanhas ativas, funil resumido
-- **Saldo Meta**: valor grande com barra de progresso, gasto hoje, média diária, dias restantes, histórico de recargas com CRUD
-- **Campanhas**: dados 100% da Meta API via Edge Function `meta-sync` (sem CRUD manual), tabela com status, gasto, impressões, cliques, leads, CTR, CPL, badges de alerta inline
-- **Funil**: visual por curso (inscritos → pendentes → matriculados) com taxas de conversão
-- **Matrículas**: totais, custo por matrícula, breakdown por curso
-- **Importar**: instruções + botão que abre chat com prompt de importação SGE
-- Agente CEDTEC no Dispatch: extrai dados do SGE e faz action `sge_import`
+- 5 sub-abas: Visão geral, Campanhas, Marcos, Funil, Saldo Meta
+- **Visão geral**: alerta saldo baixo, 4 stat cards (saldo, leads, CPL, CTR), gráfico Gasto vs Leads, funil resumido, campanhas ativas
+- **Campanhas**: dados Meta API via `meta-sync`, tabela com leads e msgs separados, badges CPL alto
+- **Marcos (Gestor de Tráfego IA)**: chat dedicado com persona editável (salva em `configuracoes`), contexto automático (campanhas, funil, saldo), sugestões rápidas, histórico em `chat_mensagens` com `contexto='marcos'`, botão vault save. Edge Function: `marcos=true` bypassa dispatch
+- **Funil**: visual por curso + matrículas inline + botão "📥 Importar SGE"
+- **Saldo Meta**: barra de progresso, gasto/média/dias restantes, recargas CRUD
+- Conexão Meta movida para `page-config` (Configurações → Integrações)
 
 ### 7. Sítio Monte da Vitória (`page-sitio`)
 - 5 sub-abas: Visão geral, Lançamentos, Centros de custo, Cronograma, Relatórios
