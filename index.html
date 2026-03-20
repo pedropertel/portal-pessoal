@@ -680,26 +680,73 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
             <div class="breadcrumb"><b>Home</b><span>/</span><b>CEDTEC</b></div>
             <div class="page-title">🎓 CEDTEC</div>
           </div>
-          <div class="row" style="gap:8px">
-            <div class="btn-action" onclick="cedtecOpenRecarga()">💳 Registrar recarga</div>
-            <div class="btn-action primary" onclick="cedtecOpenCampanha()">+ Nova campanha</div>
-          </div>
         </div>
         <div class="row" style="gap:4px;flex-wrap:wrap" id="cedtec-tabs">
-          <div class="ptab on" data-tab="visao" onclick="cedtecTab('visao')">Visão geral</div>
+          <div class="ptab on" data-tab="conexao" onclick="cedtecTab('conexao')">Conexão Meta</div>
+          <div class="ptab" data-tab="visao" onclick="cedtecTab('visao')">Visão geral</div>
           <div class="ptab" data-tab="saldo" onclick="cedtecTab('saldo')">Saldo Meta</div>
           <div class="ptab" data-tab="campanhas" onclick="cedtecTab('campanhas')">Campanhas</div>
           <div class="ptab" data-tab="funil" onclick="cedtecTab('funil')">Funil</div>
           <div class="ptab" data-tab="matriculas" onclick="cedtecTab('matriculas')">Matrículas</div>
-          <div class="ptab" data-tab="importar" onclick="cedtecTab('importar')">Importar</div>
+          <div class="ptab" data-tab="importar" onclick="cedtecTab('importar')">Importar SGE</div>
         </div>
         <!-- ALERTA SALDO -->
         <div id="cedtec-alerta" style="display:none;background:linear-gradient(135deg,rgba(232,83,63,.15),rgba(232,83,63,.05));border:1px solid rgba(232,83,63,.3);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px">
           <span style="font-size:24px">🚨</span>
           <div><div style="font-size:14px;font-weight:600;color:var(--red2)" id="cedtec-alerta-txt">Saldo Meta baixo!</div><div style="font-size:12px;color:var(--text2)" id="cedtec-alerta-sub">Recarregue para não pausar campanhas</div></div>
         </div>
+        <!-- CONEXÃO META -->
+        <div id="cedtec-conexao">
+          <div id="ced-meta-banner" style="display:none;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(245,166,35,.05));border:1px solid rgba(245,166,35,.3);border-radius:var(--r);padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+            <span style="font-size:24px">⚠️</span>
+            <div><div style="font-size:14px;font-weight:600;color:var(--gold2)">API Meta não configurada</div><div style="font-size:12px;color:var(--text2)">Adicione META_ACCESS_TOKEN e META_AD_ACCOUNT_ID nos Secrets do Supabase</div></div>
+          </div>
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div style="padding:20px">
+                <div class="row" style="gap:10px;margin-bottom:16px">
+                  <div id="ced-meta-status-ico" style="width:12px;height:12px;border-radius:50%;background:var(--text3);flex-shrink:0;margin-top:2px"></div>
+                  <div><div style="font-size:16px;font-weight:600;color:var(--white)" id="ced-meta-status-txt">Verificando...</div><div style="font-size:12px;color:var(--text2)" id="ced-meta-status-sub"></div></div>
+                </div>
+                <div style="margin-bottom:12px">
+                  <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ad Account ID</div>
+                  <div style="font-size:14px;color:var(--white);font-family:monospace;background:var(--bg);padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border)" id="ced-meta-account">—</div>
+                </div>
+                <div style="margin-bottom:16px">
+                  <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Campanhas sincronizadas</div>
+                  <div style="font-size:14px;color:var(--white)" id="ced-meta-camp-count">0</div>
+                </div>
+                <div class="btn-action primary" onclick="cedtecSyncMeta()" id="ced-sync-btn2" style="display:inline-flex">🔄 Sincronizar agora</div>
+                <div style="font-size:12px;color:var(--text2);margin-top:8px" id="ced-meta-last-sync"></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <div style="padding:20px">
+                <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:12px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">📖 Instruções de configuração ▾</div>
+                <div style="display:none">
+                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
+                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">1. Criar App no Meta for Developers</div>
+                    <div style="font-size:11px;color:var(--text2)">Acesse developers.facebook.com → My Apps → Create App → Business</div>
+                  </div>
+                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
+                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">2. Gerar Access Token</div>
+                    <div style="font-size:11px;color:var(--text2)">Marketing API → Tools → Get Token → ads_read + ads_management</div>
+                  </div>
+                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
+                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">3. Encontrar Ad Account ID</div>
+                    <div style="font-size:11px;color:var(--text2)">Business Settings → Ad Accounts → copie o ID numérico (sem "act_")</div>
+                  </div>
+                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px">
+                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">4. Adicionar nos Secrets do Supabase</div>
+                    <div style="font-size:11px;color:var(--text2)">Dashboard Supabase → Edge Functions → Secrets:<br><code style="color:var(--teal)">META_ACCESS_TOKEN</code> e <code style="color:var(--teal)">META_AD_ACCOUNT_ID</code></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <!-- VISÃO GERAL -->
-        <div id="cedtec-visao">
+        <div id="cedtec-visao" style="display:none">
           <div class="stats-row">
             <div class="stat-card blue"><div><div class="stat-label">Saldo Meta</div><div class="stat-value" id="ced-saldo">R$ 0</div><div class="stat-sub" id="ced-dias-rest">—</div></div><div class="stat-ico">💳</div></div>
             <div class="stat-card teal"><div><div class="stat-label">Leads (inscritos)</div><div class="stat-value" id="ced-leads">0</div><div class="stat-sub">Total SGE</div></div><div class="stat-ico">📋</div></div>
@@ -2515,7 +2562,7 @@ let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[], _cedMetaCamp=[
 let _cedTrendChart=null;
 
 function cedtecTab(tab){
-  ['visao','saldo','campanhas','funil','matriculas','importar'].forEach(t=>{
+  ['conexao','visao','saldo','campanhas','funil','matriculas','importar'].forEach(t=>{
     const el=document.getElementById('cedtec-'+t);
     if(el) el.style.display=t===tab?'':'none';
   });
@@ -2535,6 +2582,7 @@ async function loadCedtec(){
   _cedCampanhas=camp||[];
   _cedSge=sge||[];
   _cedMetaCamp=metaCamp||[];
+  cedtecRenderConexao();
   cedtecRenderVisao();
   cedtecRenderSaldo();
   cedtecRenderCampanhas();
@@ -2741,52 +2789,32 @@ async function cedtecDeleteRecarga(id){
   await loadCedtec(); showToast('🗑️','Recarga excluída','');
 }
 
-function cedtecOpenCampanha(){
-  openModal('Nova Campanha','',`
-    <label class="m-label">Nome</label><input class="m-input" id="m-ced-camp-nome" placeholder="Ex: Informática - Março 2026">
-    <label class="m-label">Curso</label><input class="m-input" id="m-ced-camp-curso" placeholder="Ex: Técnico em Informática">
-    <label class="m-label">Status</label>
-    <select class="m-select" id="m-ced-camp-status"><option value="ativa">Ativa</option><option value="pausada">Pausada</option></select>
-    <label class="m-label">Gasto (R$)</label><input class="m-input" id="m-ced-camp-gasto" type="number" step="0.01" value="0">
-    <label class="m-label">Leads</label><input class="m-input" id="m-ced-camp-leads" type="number" value="0">
-  `,[
-    {label:'Cancelar',cls:'btn-cancel',action:closeModal},
-    {label:'Criar',cls:'btn-confirm',action:async()=>{
-      const nome=document.getElementById('m-ced-camp-nome').value.trim();
-      if(!nome){showToast('⚠️','Preencha o nome','');return;}
-      const gasto=parseFloat(document.getElementById('m-ced-camp-gasto').value)||0;
-      const leads=parseInt(document.getElementById('m-ced-camp-leads').value)||0;
-      await sb.from('cedtec_campanhas').insert({nome,curso:document.getElementById('m-ced-camp-curso').value.trim()||null,status:document.getElementById('m-ced-camp-status').value,gasto,leads_meta:leads,custo_por_lead:leads>0?gasto/leads:0});
-      closeModal(); await loadCedtec(); showToast('📣','Campanha criada!','');
-    }}
-  ]);
-}
-
-function cedtecEditCampanha(id){
-  const c=_cedCampanhas.find(x=>x.id===id);
-  if(!c) return;
-  openModal('Editar Campanha','',`
-    <label class="m-label">Nome</label><input class="m-input" id="m-ced-camp-nome" value="${esc(c.nome)}">
-    <label class="m-label">Curso</label><input class="m-input" id="m-ced-camp-curso" value="${esc(c.curso||'')}">
-    <label class="m-label">Status</label>
-    <select class="m-select" id="m-ced-camp-status"><option value="ativa" ${c.status==='ativa'?'selected':''}>Ativa</option><option value="pausada" ${c.status==='pausada'?'selected':''}>Pausada</option></select>
-    <label class="m-label">Gasto (R$)</label><input class="m-input" id="m-ced-camp-gasto" type="number" step="0.01" value="${c.gasto||0}">
-    <label class="m-label">Leads</label><input class="m-input" id="m-ced-camp-leads" type="number" value="${c.leads_meta||0}">
-    <label class="m-label">Impressões</label><input class="m-input" id="m-ced-camp-imp" type="number" value="${c.impressoes||0}">
-    <label class="m-label">Cliques</label><input class="m-input" id="m-ced-camp-cli" type="number" value="${c.cliques||0}">
-  `,[
-    {label:'Excluir',cls:'btn-cancel',style:'color:var(--red2)',action:async()=>{if(confirm('Excluir campanha?')){await sb.from('cedtec_campanhas').delete().eq('id',id);closeModal();await loadCedtec();showToast('🗑️','Campanha excluída','');}}},
-    {label:'Salvar',cls:'btn-confirm',action:async()=>{
-      const nome=document.getElementById('m-ced-camp-nome').value.trim();
-      if(!nome) return;
-      const gasto=parseFloat(document.getElementById('m-ced-camp-gasto').value)||0;
-      const leads=parseInt(document.getElementById('m-ced-camp-leads').value)||0;
-      const imp=parseInt(document.getElementById('m-ced-camp-imp').value)||0;
-      const cli=parseInt(document.getElementById('m-ced-camp-cli').value)||0;
-      await sb.from('cedtec_campanhas').update({nome,curso:document.getElementById('m-ced-camp-curso').value.trim()||null,status:document.getElementById('m-ced-camp-status').value,gasto,leads_meta:leads,impressoes:imp,cliques:cli,ctr:imp>0?(cli/imp*100):0,custo_por_lead:leads>0?gasto/leads:0,atualizado_em:new Date().toISOString()}).eq('id',id);
-      closeModal(); await loadCedtec(); showToast('✅','Campanha atualizada','');
-    }}
-  ]);
+function cedtecRenderConexao(){
+  const hasCamps=_cedMetaCamp.length>0;
+  const lastSync=hasCamps?_cedMetaCamp[0].sincronizado_em:null;
+  const icoEl=document.getElementById('ced-meta-status-ico');
+  const txtEl=document.getElementById('ced-meta-status-txt');
+  const subEl=document.getElementById('ced-meta-status-sub');
+  const bannerEl=document.getElementById('ced-meta-banner');
+  if(hasCamps){
+    icoEl.style.background='var(--green)';
+    txtEl.textContent='Conectado';
+    subEl.textContent=_cedMetaCamp.length+' campanhas sincronizadas';
+    bannerEl.style.display='none';
+  } else {
+    icoEl.style.background='var(--red)';
+    txtEl.textContent='Desconectado';
+    subEl.textContent='Nenhuma campanha sincronizada — configure os Secrets';
+    bannerEl.style.display='flex';
+  }
+  // Account ID masked
+  const firstCamp=_cedMetaCamp[0];
+  const campId=firstCamp?.campaign_id||'';
+  document.getElementById('ced-meta-account').textContent=hasCamps?'act_****'+campId.slice(-4):'Não configurado';
+  // Campaign count
+  document.getElementById('ced-meta-camp-count').textContent=_cedMetaCamp.length;
+  // Last sync
+  document.getElementById('ced-meta-last-sync').textContent=lastSync?'Última sincronização: '+fmtDate(lastSync)+' às '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Nunca sincronizado';
 }
 
 window.goPage=goPage;
@@ -2808,7 +2836,9 @@ window.sitioPreviewAttach=sitioPreviewAttach;
 window.closeNotif=closeNotif;
 async function cedtecSyncMeta(){
   const btn=document.getElementById('ced-sync-btn');
+  const btn2=document.getElementById('ced-sync-btn2');
   btn.textContent='⏳ Sincronizando...';btn.style.pointerEvents='none';
+  if(btn2){btn2.textContent='⏳ Sincronizando...';btn2.style.pointerEvents='none';}
   try{
     const{data:{session}}=await sb.auth.getSession();
     const token=session?.access_token||'';
@@ -2821,6 +2851,7 @@ async function cedtecSyncMeta(){
     await loadCedtec();
   }catch(e){showToast('❌','Erro de conexão',e.message);}
   btn.textContent='🔄 Sincronizar Meta';btn.style.pointerEvents='';
+  if(btn2){btn2.textContent='🔄 Sincronizar agora';btn2.style.pointerEvents='';}
 }
 
 function cedtecRenderTrend(){
@@ -2855,8 +2886,6 @@ function cedtecRenderTrend(){
 window.cedtecTab=cedtecTab;
 window.cedtecOpenRecarga=cedtecOpenRecarga;
 window.cedtecDeleteRecarga=cedtecDeleteRecarga;
-window.cedtecOpenCampanha=cedtecOpenCampanha;
-window.cedtecEditCampanha=cedtecEditCampanha;
 window.cedtecSyncMeta=cedtecSyncMeta;
 window.sitioViewAttach=sitioViewAttach;
 
