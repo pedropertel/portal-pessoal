@@ -43,7 +43,8 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 - **Dashboard**: 4 stat cards (tarefas pendentes, eventos hoje, documentos, gráfica), gráfico de performance de tarefas (7 dias), gráfico de pizza por empresa (dados reais), tabela de tarefas recentes
 - **Tarefas (Kanban)**: 3 colunas (pendente, em andamento, concluída), drag & drop entre colunas, criar/editar/excluir, campos: título, descrição, empresa, prioridade, status, data de vencimento, lembrete (data+hora), ordenação por prioridade (urgentes primeiro), filtro por empresa, ícone 🔔 no kanban para tarefas com lembrete, alarme automático com banner + som + Web Notification no horário agendado
 - **Documentos**: navegação por pastas/subpastas, criar/renomear/excluir pastas, renomear/excluir arquivos, upload de múltiplos arquivos para Supabase Storage, visualizador inline de PDFs e imagens (estilo WhatsApp), compartilhamento nativo (Web Share API com fallback clipboard), breadcrumb de navegação, menu de contexto
-- **Chat IA (Claude Dispatch)**: classificação automática em 2 etapas (domínio → agente especializado), 5 agentes: tarefas, agenda, gráfica, sítio, geral. Histórico persistido em `chat_mensagens`, ações automáticas (criar tarefa, evento, gasto), reconhecimento de voz com texto parcial em tempo real (interimResults), renderização de Markdown, badge do agente na resposta
+- **Chat IA (Claude Dispatch)**: classificação automática em 2 etapas (domínio → agente especializado), 6 agentes: tarefas, agenda, gráfica, sítio, cedtec, geral. Histórico persistido em `chat_mensagens`, ações automáticas (criar tarefa, evento, gasto, importar SGE), reconhecimento de voz com texto parcial em tempo real (interimResults), renderização de Markdown, badge do agente na resposta
+- **Módulo CEDTEC**: 6 sub-abas (Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar). Alerta de saldo baixo, tracking de recargas, campanhas Meta Ads, funil SGE por curso, importação de dados via chat
 - **Módulo Sítio**: 5 sub-abas (Visão geral, Lançamentos, Centros de custo, Cronograma, Relatórios). CRUD completo de centros de custo e lançamentos, gráficos de barras e pizza, filtros por centro e tipo (realizado/planejado)
 - **Agenda**: lista de eventos agrupados por dia, mini calendário do mês atual, resumo (semana, mês, próximo evento), CRUD completo de eventos (criar, editar, excluir), associação com empresa
 - **Busca global**: `Ctrl+K` abre busca, pesquisa em tarefas, documentos, eventos e empresas, dropdown com resultados clicáveis
@@ -119,7 +120,17 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 - Download, renomear, excluir
 - Menu de contexto: Visualizar, Download, Compartilhar, Renomear, Excluir
 
-### 6. Sítio Monte da Vitória (`page-sitio`)
+### 6. CEDTEC (`page-cedtec`)
+- 6 sub-abas: Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar
+- **Visão geral**: alerta vermelho quando saldo Meta < 3 dias, 4 stat cards, campanhas ativas, funil resumido
+- **Saldo Meta**: valor grande com barra de progresso, gasto hoje, média diária, dias restantes, histórico de recargas com CRUD
+- **Campanhas**: tabela com status, curso, gasto, leads, CTR, CPL. CRUD completo
+- **Funil**: visual por curso (inscritos → pendentes → matriculados) com taxas de conversão
+- **Matrículas**: totais, custo por matrícula, breakdown por curso
+- **Importar**: instruções + botão que abre chat com prompt de importação SGE
+- Agente CEDTEC no Dispatch: extrai dados do SGE e faz action `sge_import`
+
+### 7. Sítio Monte da Vitória (`page-sitio`)
 - 5 sub-abas: Visão geral, Lançamentos, Centros de custo, Cronograma, Relatórios
 - **Visão geral**: 4 stat cards (total investido, gasto mensal, planejado 3 meses, qtd centros), barras de progresso por centro, últimos lançamentos
 - **Lançamentos**: tabela com filtros por centro de custo e tipo (realizado/planejado), CRUD completo, anexo de comprovantes (foto/arquivo/PDF), ícone 📎 clicável na tabela
@@ -182,7 +193,7 @@ portal-pessoal/
                 - verify_jwt: false (validação manual)
                 - Modelo: claude-haiku-4-5-20251001
                 - Dispatch: classifica domínio → agente especializado
-                - 5 agentes: tarefas, agenda, grafica, sitio, geral
+                - 6 agentes: tarefas, agenda, grafica, sitio, cedtec, geral
                 - Retorna: { reply, action, actionData, agente }
                 - Actions: tarefa | evento | gasto
 ```
@@ -196,9 +207,9 @@ portal-pessoal/
 | HTML Auth | 430-450 | Tela de login |
 | HTML App | 450-720 | Header, sidebar, pages (dashboard, chat, agenda, tasks, docs, sítio, empresas) |
 | HTML Modal/Toast | 720-750 | Modal genérico, toasts, push notification |
-| JavaScript | 750-2400 | Toda a lógica do app |
+| JavaScript | 750-2764 | Toda a lógica do app |
 
-### Funções JS principais (~85 funções)
+### Funções JS principais (~100 funções)
 
 **Auth**: `signIn`, `initApp`
 **Navegação**: `setupSidebar`, `toggleSidebar`, `goPage`
@@ -209,7 +220,8 @@ portal-pessoal/
 **Tarefas**: `loadTasks`, `renderKanban`, `setupDragDrop`, `openNewTask`, `openEditTask`, `scheduleReminders`
 **Documentos**: `loadDocs`, `renderDocs`, `openNewFolder`, `renameFolder`, `deleteFolder`, `triggerUpload`, `downloadDoc`, `openFileViewer`, `closeFileViewer`, `shareDoc`
 **Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`, `resetMic`
-**Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`
+**Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`, `handleActionSgeImport`
+**CEDTEC**: `loadCedtec`, `cedtecTab`, `cedtecRenderVisao`, `cedtecRenderSaldo`, `cedtecRenderCampanhas`, `cedtecRenderFunil`, `cedtecRenderMatriculas`, `cedtecRenderImport`, `cedtecOpenRecarga`, `cedtecDeleteRecarga`, `cedtecOpenCampanha`, `cedtecEditCampanha`
 **Agenda**: `loadAgenda`, `renderAgendaList`, `renderMiniCalendar`, `renderAgendaStats`, `openNewEvent`, `openEditEvent`
 **Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderIconPicker`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
 **Notificações**: `checkNotifs`, `triggerNotif`, `closeNotif`, `requestNotifPermission`, `scheduleReminders`
@@ -232,6 +244,10 @@ grafica_pedidos        — pedidos da gráfica (módulo pendente)
 grafica_parcelas       — parcelas de receitas (módulo pendente)
 grafica_extratos       — extratos bancários (módulo pendente)
 grafica_conciliacao    — conciliação bancária (módulo pendente)
+cedtec_conta_meta      — saldo e gastos Meta Ads (saldo_atual, limite, gasto_hoje, gasto_mes)
+cedtec_recargas        — histórico de recargas (valor, data, notas)
+cedtec_campanhas       — campanhas Meta (nome, status, curso, gasto, leads, CTR, CPL)
+cedtec_sge_importacoes — importações do SGE (inscritos, pendentes, matriculados, curso, periodo)
 meta_conexoes          — conexões Meta/Facebook (módulo pendente)
 meta_campanhas_cache   — cache de campanhas Meta (módulo pendente)
 sitio_categorias       — centros de custo do sítio (nome, cor, icone, tipo: terreno/obra/lavoura/infra/geral)
