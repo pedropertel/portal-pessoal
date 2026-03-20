@@ -1,6 +1,6 @@
 # Portal Pessoal — Contexto do Projeto
 
-> Atualizado em: 2026-03-19
+> Atualizado em: 2026-03-20
 
 ---
 
@@ -41,9 +41,9 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 
 - **Auth**: login/logout com email e senha, sessão persistida em localStorage, auto-refresh de token
 - **Dashboard**: 4 stat cards (tarefas pendentes, eventos hoje, documentos, gráfica), gráfico de performance de tarefas (7 dias), gráfico de pizza por empresa (dados reais), tabela de tarefas recentes
-- **Tarefas (Kanban)**: 3 colunas (pendente, em andamento, concluída), drag & drop entre colunas, criar/editar/excluir, campos: título, descrição, empresa, prioridade, status, data de vencimento, ordenação por prioridade (urgentes primeiro), filtro por empresa
-- **Documentos**: navegação por pastas/subpastas, criar/renomear/excluir pastas, renomear/excluir arquivos, upload de múltiplos arquivos para Supabase Storage, download via signed URL, breadcrumb de navegação, menu de contexto (clique direito)
-- **Chat IA (Claude Dispatch)**: classificação automática em 2 etapas (domínio → agente especializado), 5 agentes: tarefas, agenda, gráfica, sítio, geral. Histórico persistido em `chat_mensagens`, ações automáticas (criar tarefa, evento, gasto), reconhecimento de voz (Web Speech API), chips de ação rápida, renderização de Markdown, badge do agente na resposta
+- **Tarefas (Kanban)**: 3 colunas (pendente, em andamento, concluída), drag & drop entre colunas, criar/editar/excluir, campos: título, descrição, empresa, prioridade, status, data de vencimento, lembrete (data+hora), ordenação por prioridade (urgentes primeiro), filtro por empresa, ícone 🔔 no kanban para tarefas com lembrete, alarme automático com banner + som + Web Notification no horário agendado
+- **Documentos**: navegação por pastas/subpastas, criar/renomear/excluir pastas, renomear/excluir arquivos, upload de múltiplos arquivos para Supabase Storage, visualizador inline de PDFs e imagens (estilo WhatsApp), compartilhamento nativo (Web Share API com fallback clipboard), breadcrumb de navegação, menu de contexto
+- **Chat IA (Claude Dispatch)**: classificação automática em 2 etapas (domínio → agente especializado), 5 agentes: tarefas, agenda, gráfica, sítio, geral. Histórico persistido em `chat_mensagens`, ações automáticas (criar tarefa, evento, gasto), reconhecimento de voz com texto parcial em tempo real (interimResults), renderização de Markdown, badge do agente na resposta
 - **Módulo Sítio**: 5 sub-abas (Visão geral, Lançamentos, Centros de custo, Cronograma, Relatórios). CRUD completo de centros de custo e lançamentos, gráficos de barras e pizza, filtros por centro e tipo (realizado/planejado)
 - **Agenda**: lista de eventos agrupados por dia, mini calendário do mês atual, resumo (semana, mês, próximo evento), CRUD completo de eventos (criar, editar, excluir), associação com empresa
 - **Busca global**: `Ctrl+K` abre busca, pesquisa em tarefas, documentos, eventos e empresas, dropdown com resultados clicáveis
@@ -105,17 +105,19 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 
 ### 4. Tarefas (`page-tasks`)
 - Kanban com 3 colunas e drag & drop
-- Campos: título, descrição, empresa, prioridade, status, data
+- Campos: título, descrição, empresa, prioridade, status, data, lembrete (data+hora)
 - Ordenação por prioridade (urgentes no topo)
 - Filtro por empresa
 - `data_conclusao` preenchida automaticamente ao concluir
+- Lembretes: 🔔 no kanban, alarme automático via `scheduleReminders()` com setTimeout até horário exato, banner + som + Web Notification, reavaliação a cada hora
 
 ### 5. Documentos (`page-docs`)
 - Navegação hierárquica por pastas (até 3 níveis)
 - Upload de múltiplos arquivos (Supabase Storage)
-- Download via signed URL
-- Renomear/excluir pastas e arquivos
-- Menu de contexto e breadcrumb
+- Visualizador inline: PDFs em iframe, imagens centralizadas com pinch-to-zoom
+- Compartilhamento nativo: Web Share API (WhatsApp, AirDrop, email) com fallback clipboard (7 dias)
+- Download, renomear, excluir
+- Menu de contexto: Visualizar, Download, Compartilhar, Renomear, Excluir
 
 ### 6. Sítio Monte da Vitória (`page-sitio`)
 - 5 sub-abas: Visão geral, Lançamentos, Centros de custo, Cronograma, Relatórios
@@ -194,9 +196,9 @@ portal-pessoal/
 | HTML Auth | 430-450 | Tela de login |
 | HTML App | 450-720 | Header, sidebar, pages (dashboard, chat, agenda, tasks, docs, sítio, empresas) |
 | HTML Modal/Toast | 720-750 | Modal genérico, toasts, push notification |
-| JavaScript | 750-2085 | Toda a lógica do app |
+| JavaScript | 750-2400 | Toda a lógica do app |
 
-### Funções JS principais (~75 funções)
+### Funções JS principais (~85 funções)
 
 **Auth**: `signIn`, `initApp`
 **Navegação**: `setupSidebar`, `toggleSidebar`, `goPage`
@@ -204,13 +206,13 @@ portal-pessoal/
 **Atalhos**: `setupKeyboardShortcuts`
 **Busca**: `setupSearch`, `doSearch`
 **Dashboard**: `loadDashboard`, `renderRecentTasksTable`, `renderMainChart`, `renderPieChart`
-**Tarefas**: `loadTasks`, `renderKanban`, `setupDragDrop`, `openNewTask`, `openEditTask`
-**Documentos**: `loadDocs`, `renderDocs`, `openNewFolder`, `renameFolder`, `deleteFolder`, `triggerUpload`, `downloadDoc`
-**Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`
+**Tarefas**: `loadTasks`, `renderKanban`, `setupDragDrop`, `openNewTask`, `openEditTask`, `scheduleReminders`
+**Documentos**: `loadDocs`, `renderDocs`, `openNewFolder`, `renameFolder`, `deleteFolder`, `triggerUpload`, `downloadDoc`, `openFileViewer`, `closeFileViewer`, `shareDoc`
+**Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`, `resetMic`
 **Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`
 **Agenda**: `loadAgenda`, `renderAgendaList`, `renderMiniCalendar`, `renderAgendaStats`, `openNewEvent`, `openEditEvent`
-**Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
-**Notificações**: `checkNotifs`, `triggerNotif`, `requestNotifPermission`
+**Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderIconPicker`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
+**Notificações**: `checkNotifs`, `triggerNotif`, `closeNotif`, `requestNotifPermission`, `scheduleReminders`
 **UI**: `openModal`, `closeModal`, `showToast`, `esc`, `fmtDate`
 
 ---
@@ -219,7 +221,7 @@ portal-pessoal/
 
 ```
 entidades              — empresas/entidades do Pedro (6 registros)
-tarefas                — kanban (titulo, descricao, entidade_id, status, prioridade, data_vencimento)
+tarefas                — kanban (titulo, descricao, entidade_id, status, prioridade, data_vencimento, lembrete_em)
 eventos                — agenda (titulo, data_inicio, data_fim, local, entidade_id, cor, dia_inteiro)
 pastas                 — pastas de documentos (nome, pasta_pai_id)
 documentos             — arquivos (nome, pasta_id, arquivo_url, arquivo_nome, arquivo_tipo)
