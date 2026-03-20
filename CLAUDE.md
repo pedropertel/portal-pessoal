@@ -121,10 +121,11 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 - Menu de contexto: Visualizar, Download, Compartilhar, Renomear, Excluir
 
 ### 6. CEDTEC (`page-cedtec`)
-- 6 sub-abas: Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar
-- **Visão geral**: alerta vermelho quando saldo Meta < 3 dias, 4 stat cards, campanhas ativas, funil resumido
+- 7 sub-abas: Conexão Meta, Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar SGE
+- **Conexão Meta**: formulário editável (Ad Account ID + Access Token com toggle 👁), salva em `meta_conexoes`, 3 estados (vermelho=desconectado, amarelo=configurado, verde=conectado), sync automática ao salvar, instruções de configuração
+- **Visão geral**: alerta vermelho quando saldo Meta < 3 dias, 4 stat cards + CPL/CTR com badges de alerta, gráfico Gasto vs Leads, campanhas ativas, funil resumido
 - **Saldo Meta**: valor grande com barra de progresso, gasto hoje, média diária, dias restantes, histórico de recargas com CRUD
-- **Campanhas**: sincronização automática com Meta Ads via Edge Function `meta-sync`, tabela com status, gasto, impressões, cliques, leads, CTR, CPL, badges de alerta inline. Botão "Sincronizar Meta" com timestamp. Fallback para dados manuais
+- **Campanhas**: dados 100% da Meta API via Edge Function `meta-sync` (sem CRUD manual), tabela com status, gasto, impressões, cliques, leads, CTR, CPL, badges de alerta inline
 - **Funil**: visual por curso (inscritos → pendentes → matriculados) com taxas de conversão
 - **Matrículas**: totais, custo por matrícula, breakdown por curso
 - **Importar**: instruções + botão que abre chat com prompt de importação SGE
@@ -192,7 +193,8 @@ portal-pessoal/
         │       - URL: /functions/v1/meta-sync
         │       - Chama Graph API v19.0 /campaigns + /insights
         │       - Upsert em meta_campanhas_cache
-        │       - Secrets: META_ACCESS_TOKEN, META_AD_ACCOUNT_ID
+        │       - Credenciais: lê de meta_conexoes (DB) com fallback para Secrets
+        │       - Atualiza meta_conexoes.status após sync
         └── chat-claude/
             └── index.ts    # Edge Function com Claude Dispatch
                 - URL: /functions/v1/chat-claude
@@ -227,7 +229,7 @@ portal-pessoal/
 **Documentos**: `loadDocs`, `renderDocs`, `openNewFolder`, `renameFolder`, `deleteFolder`, `triggerUpload`, `downloadDoc`, `openFileViewer`, `closeFileViewer`, `shareDoc`
 **Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`, `resetMic`
 **Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`, `handleActionSgeImport`
-**CEDTEC**: `loadCedtec`, `cedtecTab`, `cedtecRenderVisao`, `cedtecRenderSaldo`, `cedtecRenderCampanhas`, `cedtecRenderFunil`, `cedtecRenderMatriculas`, `cedtecRenderImport`, `cedtecRenderTrend`, `cedtecSyncMeta`, `cedtecOpenRecarga`, `cedtecDeleteRecarga`, `cedtecOpenCampanha`, `cedtecEditCampanha`
+**CEDTEC**: `loadCedtec`, `cedtecTab`, `cedtecRenderConexao`, `cedtecSaveConexao`, `cedtecRenderVisao`, `cedtecRenderSaldo`, `cedtecRenderCampanhas`, `cedtecRenderFunil`, `cedtecRenderMatriculas`, `cedtecRenderImport`, `cedtecRenderTrend`, `cedtecSyncMeta`, `cedtecOpenRecarga`, `cedtecDeleteRecarga`
 **Agenda**: `loadAgenda`, `renderAgendaList`, `renderMiniCalendar`, `renderAgendaStats`, `openNewEvent`, `openEditEvent`
 **Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderIconPicker`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
 **Notificações**: `checkNotifs`, `triggerNotif`, `closeNotif`, `requestNotifPermission`, `scheduleReminders`
@@ -254,7 +256,7 @@ cedtec_conta_meta      — saldo e gastos Meta Ads (saldo_atual, limite, gasto_h
 cedtec_recargas        — histórico de recargas (valor, data, notas)
 cedtec_campanhas       — campanhas Meta (nome, status, curso, gasto, leads, CTR, CPL)
 cedtec_sge_importacoes — importações do SGE (inscritos, pendentes, matriculados, curso, periodo)
-meta_conexoes          — conexões Meta/Facebook (módulo pendente)
+meta_conexoes          — credenciais Meta API (ad_account_id, access_token, status: desconectado/configurado/conectado, last_sync_at, campaigns_count)
 meta_campanhas_cache   — cache de campanhas Meta Ads (campaign_id unique, nome, status, gasto, impressoes, cliques, conversoes, ctr, cpc, sincronizado_em)
 sitio_categorias       — centros de custo do sítio (nome, cor, icone, tipo: terreno/obra/lavoura/infra/geral)
 sitio_lancamentos      — lançamentos financeiros (descricao, valor, centro_custo_id, tipo: realizado/planejado, data_prevista, data_realizada, notas, comprovante_url)
