@@ -706,15 +706,23 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
             <div class="stat-card green"><div><div class="stat-label">Matrículas</div><div class="stat-value" id="ced-matric">0</div><div class="stat-sub">SGE matriculados</div></div><div class="stat-ico">🎓</div></div>
             <div class="stat-card gold"><div><div class="stat-label">Custo / matrícula</div><div class="stat-value" id="ced-cpm">—</div><div class="stat-sub">Gasto ÷ matrículas</div></div><div class="stat-ico">💰</div></div>
           </div>
+          <div class="stats-row" style="margin-top:8px">
+            <div class="stat-card purple"><div><div class="stat-label">CPL médio</div><div class="stat-value" id="ced-cpl-val">—</div><div class="stat-sub" id="ced-cpl-badge"></div></div><div class="stat-ico">📊</div></div>
+            <div class="stat-card red"><div><div class="stat-label">CTR médio</div><div class="stat-value" id="ced-ctr-val">—</div><div class="stat-sub" id="ced-ctr-badge"></div></div><div class="stat-ico">📈</div></div>
+          </div>
           <div class="chart-grid" style="margin-top:12px">
             <div class="chart-card">
-              <div class="chart-hdr"><div><div class="chart-ttl">Campanhas ativas</div></div></div>
-              <div id="ced-campanhas-lista" style="max-height:280px;overflow-y:auto"></div>
+              <div class="chart-hdr"><div><div class="chart-ttl">Tendência: Gasto vs Leads</div><div class="chart-sub">Meta Ads — campanhas sincronizadas</div></div></div>
+              <div class="chart-wrap"><canvas id="ced-trend-chart"></canvas></div>
             </div>
             <div class="chart-card">
               <div class="chart-hdr"><div><div class="chart-ttl">Funil resumido</div></div></div>
               <div id="ced-funil-resumo"></div>
             </div>
+          </div>
+          <div class="chart-card" style="margin-top:12px">
+            <div class="chart-hdr"><div><div class="chart-ttl">Campanhas ativas</div></div></div>
+            <div id="ced-campanhas-lista" style="max-height:280px;overflow-y:auto"></div>
           </div>
         </div>
         <!-- SALDO META -->
@@ -740,9 +748,12 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
         </div>
         <!-- CAMPANHAS -->
         <div id="cedtec-campanhas" style="display:none">
-          <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="ced-camp-sync"></div>
+          <div class="row between" style="margin-bottom:8px">
+            <div style="font-size:12px;color:var(--text2)" id="ced-camp-sync"></div>
+            <div class="btn-action" onclick="cedtecSyncMeta()" id="ced-sync-btn">🔄 Sincronizar Meta</div>
+          </div>
           <div class="table-card">
-            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Campanha</th><th>Status</th><th>Curso</th><th>Gasto</th><th>Leads</th><th>CTR</th><th>CPL</th><th></th></tr></thead>
+            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Impressões</th><th>Cliques</th><th>Leads</th><th>CTR</th><th>CPL</th></tr></thead>
             <tbody id="ced-camp-body"><tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha</td></tr></tbody></table>
           </div>
         </div>
@@ -2500,7 +2511,8 @@ async function sitioDeleteLanc(id,nome){
 function fmtMoney(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 
 // ── CEDTEC MODULE ────────────────────────────────────────
-let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[];
+let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[], _cedMetaCamp=[];
+let _cedTrendChart=null;
 
 function cedtecTab(tab){
   ['visao','saldo','campanhas','funil','matriculas','importar'].forEach(t=>{
@@ -2511,16 +2523,18 @@ function cedtecTab(tab){
 }
 
 async function loadCedtec(){
-  const[{data:meta},{data:rec},{data:camp},{data:sge}]=await Promise.all([
+  const[{data:meta},{data:rec},{data:camp},{data:sge},{data:metaCamp}]=await Promise.all([
     sb.from('cedtec_conta_meta').select('*').limit(1).single(),
     sb.from('cedtec_recargas').select('*').order('data',{ascending:false}).limit(50),
     sb.from('cedtec_campanhas').select('*').order('atualizado_em',{ascending:false}).limit(50),
-    sb.from('cedtec_sge_importacoes').select('*').order('importado_em',{ascending:false}).limit(100)
+    sb.from('cedtec_sge_importacoes').select('*').order('importado_em',{ascending:false}).limit(100),
+    sb.from('meta_campanhas_cache').select('*').order('sincronizado_em',{ascending:false}).limit(100)
   ]);
   _cedMeta=meta||{saldo_atual:0,limite:0,gasto_hoje:0,gasto_mes:0};
   _cedRecargas=rec||[];
   _cedCampanhas=camp||[];
   _cedSge=sge||[];
+  _cedMetaCamp=metaCamp||[];
   cedtecRenderVisao();
   cedtecRenderSaldo();
   cedtecRenderCampanhas();
@@ -2551,14 +2565,41 @@ function cedtecRenderVisao(){
     document.getElementById('cedtec-alerta-sub').textContent=`Saldo: ${fmtMoney(m.saldo_atual)} · Média diária: ${fmtMoney(mediaDia)}`;
   } else { alerta.style.display='none'; }
 
-  // Campanhas ativas
-  const ativas=_cedCampanhas.filter(c=>c.status==='ativa');
-  document.getElementById('ced-campanhas-lista').innerHTML=ativas.length?ativas.map(c=>`
-    <div class="sitio-recent-item">
+  // CPL / CTR badges from meta cache
+  const metaWithData=_cedMetaCamp.filter(c=>c.gasto>0);
+  const totalSpend=metaWithData.reduce((s,c)=>s+(parseFloat(c.gasto)||0),0);
+  const totalLeadsMeta=metaWithData.reduce((s,c)=>s+(c.conversoes||0),0);
+  const avgCPL=totalLeadsMeta>0?totalSpend/totalLeadsMeta:0;
+  const avgCTR=metaWithData.length?metaWithData.reduce((s,c)=>s+(parseFloat(c.ctr)||0),0)/metaWithData.length:0;
+  document.getElementById('ced-cpl-val').textContent=avgCPL>0?fmtMoney(avgCPL):'—';
+  document.getElementById('ced-ctr-val').textContent=avgCTR>0?avgCTR.toFixed(2)+'%':'—';
+  // CPL alert badge
+  const cplEl=document.getElementById('ced-cpl-badge');
+  if(avgCPL>0){
+    const median=metaWithData.length?metaWithData.map(c=>(c.conversoes||0)>0?(parseFloat(c.gasto)||0)/(c.conversoes):0).filter(v=>v>0).sort((a,b)=>a-b):[];
+    const medianCPL=median.length?median[Math.floor(median.length/2)]:avgCPL;
+    if(avgCPL>medianCPL*1.2) cplEl.innerHTML='<span class="badge red">▲ CPL alto</span>';
+    else cplEl.innerHTML='<span class="badge green">CPL normal</span>';
+  } else cplEl.textContent='';
+  document.getElementById('ced-ctr-badge').innerHTML=avgCTR>0?'<span class="badge blue">Média geral</span>':'';
+
+  // Campanhas ativas — use meta cache if available, fallback to manual
+  const ativas=_cedMetaCamp.length
+    ?_cedMetaCamp.filter(c=>c.status==='ACTIVE')
+    :_cedCampanhas.filter(c=>c.status==='ativa');
+  document.getElementById('ced-campanhas-lista').innerHTML=ativas.length?ativas.map(c=>{
+    const nome=c.nome||c.name;
+    const gasto=parseFloat(c.gasto)||0;
+    const leads=c.conversoes||c.leads_meta||0;
+    return `<div class="sitio-recent-item">
       <span style="font-size:16px">📣</span>
-      <div style="flex:1;min-width:0"><div style="color:var(--white);font-weight:500">${esc(c.nome)}</div><div style="font-size:11px;color:var(--text2)">${c.curso||'—'} · ${c.leads_meta||0} leads</div></div>
-      <div style="font-weight:600;color:var(--white)">${fmtMoney(c.gasto||0)}</div>
-    </div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--text2)">Nenhuma campanha ativa</div>';
+      <div style="flex:1;min-width:0"><div style="color:var(--white);font-weight:500">${esc(nome)}</div><div style="font-size:11px;color:var(--text2)">${leads} leads · CPL ${leads>0?fmtMoney(gasto/leads):'—'}</div></div>
+      <div style="font-weight:600;color:var(--white)">${fmtMoney(gasto)}</div>
+    </div>`;
+  }).join(''):'<div style="padding:20px;text-align:center;color:var(--text2)">Nenhuma campanha ativa</div>';
+
+  // Trend chart
+  cedtecRenderTrend();
 
   // Funil resumido
   const totalPend=_cedSge.reduce((s,r)=>s+(r.pendentes||0),0);
@@ -2596,14 +2637,35 @@ function cedtecRenderSaldo(){
 }
 
 function cedtecRenderCampanhas(){
-  document.getElementById('ced-camp-sync').textContent=_cedCampanhas.length?'Última atualização: '+fmtDate(_cedCampanhas[0].atualizado_em):'Sem campanhas';
-  document.getElementById('ced-camp-body').innerHTML=_cedCampanhas.length?_cedCampanhas.map(c=>{
-    const stBadge=c.status==='ativa'?'<span class="badge green">Ativa</span>':'<span class="badge gold">Pausada</span>';
+  // Use meta cache if available, fallback to manual
+  const camps=_cedMetaCamp.length?_cedMetaCamp:_cedCampanhas;
+  const isMeta=_cedMetaCamp.length>0;
+  const syncTime=isMeta&&camps[0]?.sincronizado_em?fmtDate(camps[0].sincronizado_em)+' '+new Date(camps[0].sincronizado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+  document.getElementById('ced-camp-sync').textContent=syncTime?'Última sincronização: '+syncTime:(camps.length?'Dados manuais':'Sem campanhas — sincronize com a Meta');
+
+  if(!camps.length){
+    document.getElementById('ced-camp-body').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha — clique em "Sincronizar Meta"</td></tr>';
+    return;
+  }
+  document.getElementById('ced-camp-body').innerHTML=camps.map(c=>{
+    const nome=c.nome||c.name;
+    const status=c.status||'';
+    const stNorm=status.toUpperCase();
+    const stBadge=stNorm==='ACTIVE'||status==='ativa'?'<span class="badge green">Ativa</span>':stNorm==='PAUSED'||status==='pausada'?'<span class="badge gold">Pausada</span>':'<span class="badge blue">'+esc(status)+'</span>';
+    const gasto=parseFloat(c.gasto)||0;
+    const impressoes=c.impressoes||0;
+    const cliques=c.cliques||0;
+    const leads=c.conversoes||c.leads_meta||0;
+    const ctr=parseFloat(c.ctr)||0;
+    const cpl=leads>0?gasto/leads:0;
+    // CPL alert
+    const avgCPL=_cedMetaCamp.length?_cedMetaCamp.filter(x=>(x.conversoes||0)>0).reduce((s,x)=>s+(parseFloat(x.gasto)||0)/(x.conversoes||1),0)/Math.max(_cedMetaCamp.filter(x=>(x.conversoes||0)>0).length,1):0;
+    const cplBadge=cpl>0&&avgCPL>0&&cpl>avgCPL*1.2?' <span class="badge red" style="font-size:9px">CPL alto</span>':'';
     return `<tr>
-      <td style="font-weight:500;color:var(--white)">${esc(c.nome)}</td><td>${stBadge}</td><td>${esc(c.curso||'—')}</td>
-      <td style="font-weight:600">${fmtMoney(c.gasto)}</td><td>${c.leads_meta||0}</td><td>${(c.ctr||0).toFixed(2)}%</td><td>${fmtMoney(c.custo_por_lead||0)}</td>
-      <td><span style="cursor:pointer" onclick="cedtecEditCampanha('${c.id}')">✏️</span></td></tr>`;
-  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha</td></tr>';
+      <td style="font-weight:500;color:var(--white)">${esc(nome)}${cplBadge}</td><td>${stBadge}</td>
+      <td style="font-weight:600">${fmtMoney(gasto)}</td><td>${impressoes.toLocaleString('pt-BR')}</td><td>${cliques.toLocaleString('pt-BR')}</td><td>${leads}</td>
+      <td>${ctr.toFixed(2)}%</td><td>${cpl>0?fmtMoney(cpl):'—'}</td></tr>`;
+  }).join('');
 }
 
 function cedtecRenderFunil(){
@@ -2744,11 +2806,58 @@ window.sitioDeleteLanc=sitioDeleteLanc;
 window.sitioRenderLancs=sitioRenderLancs;
 window.sitioPreviewAttach=sitioPreviewAttach;
 window.closeNotif=closeNotif;
+async function cedtecSyncMeta(){
+  const btn=document.getElementById('ced-sync-btn');
+  btn.textContent='⏳ Sincronizando...';btn.style.pointerEvents='none';
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    const token=session?.access_token||'';
+    const res=await fetch(SURL+'/functions/v1/meta-sync',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:'{}'
+    });
+    const data=await res.json();
+    if(data.error){showToast('❌','Erro na sincronização',data.error);btn.textContent='🔄 Sincronizar Meta';btn.style.pointerEvents='';return;}
+    showToast('✅',`${data.synced} campanhas sincronizadas`,'');
+    await loadCedtec();
+  }catch(e){showToast('❌','Erro de conexão',e.message);}
+  btn.textContent='🔄 Sincronizar Meta';btn.style.pointerEvents='';
+}
+
+function cedtecRenderTrend(){
+  const ctx=document.getElementById('ced-trend-chart');
+  if(!ctx) return;
+  // Use meta cache campaigns — aggregate spend and leads by campaign
+  const camps=_cedMetaCamp.filter(c=>parseFloat(c.gasto)>0);
+  if(!camps.length){
+    if(_cedTrendChart){_cedTrendChart.destroy();_cedTrendChart=null;}
+    return;
+  }
+  const labels=camps.map(c=>esc(c.nome||'').substring(0,20));
+  const gastoData=camps.map(c=>parseFloat(c.gasto)||0);
+  const leadsData=camps.map(c=>c.conversoes||0);
+  if(_cedTrendChart) _cedTrendChart.destroy();
+  _cedTrendChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Gasto (R$)',data:gastoData,backgroundColor:'rgba(232,83,63,.6)',borderRadius:4,yAxisID:'y'},
+      {label:'Leads',data:leadsData,backgroundColor:'rgba(0,201,167,.7)',borderRadius:4,yAxisID:'y1'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#6B7A99',font:{size:11}}},tooltip:{backgroundColor:'#1E2435',titleColor:'#EEF2FF',bodyColor:'#C8D0E0'}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#6B7A99',font:{size:10},maxRotation:45}},
+        y:{position:'left',grid:{color:'rgba(42,49,72,.5)'},ticks:{color:'#6B7A99',font:{size:11},callback:v=>'R$'+v}},
+        y1:{position:'right',grid:{display:false},ticks:{color:'#00C9A7',font:{size:11}}}
+      }
+    }
+  });
+}
+
 window.cedtecTab=cedtecTab;
 window.cedtecOpenRecarga=cedtecOpenRecarga;
 window.cedtecDeleteRecarga=cedtecDeleteRecarga;
 window.cedtecOpenCampanha=cedtecOpenCampanha;
 window.cedtecEditCampanha=cedtecEditCampanha;
+window.cedtecSyncMeta=cedtecSyncMeta;
 window.sitioViewAttach=sitioViewAttach;
 
 async function sitioViewAttach(id){
