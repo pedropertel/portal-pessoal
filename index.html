@@ -2612,7 +2612,7 @@ function cedtecRenderVisao(){
   // CPL / CTR badges from meta cache
   const metaWithData=_cedMetaCamp.filter(c=>c.gasto>0);
   const totalSpend=metaWithData.reduce((s,c)=>s+(parseFloat(c.gasto)||0),0);
-  const totalLeadsMeta=metaWithData.reduce((s,c)=>s+(c.conversoes||0),0);
+  const totalLeadsMeta=metaWithData.reduce((s,c)=>s+((c.conversoes||0)||(c.messages_count||0)),0);
   const avgCPL=totalLeadsMeta>0?totalSpend/totalLeadsMeta:0;
   const avgCTR=metaWithData.length?metaWithData.reduce((s,c)=>s+(parseFloat(c.ctr)||0),0)/metaWithData.length:0;
   document.getElementById('ced-cpl-val').textContent=avgCPL>0?fmtMoney(avgCPL):'—';
@@ -2703,11 +2703,14 @@ function cedtecRenderCampanhas(){
     const leads=c.conversoes||c.leads_meta||0;
     const msgs=c.messages_count||0;
     const ctr=parseFloat(c.ctr)||0;
-    const cpl=leads>0?gasto/leads:0;
+    // Use messages as proxy for leads if no actual leads
+    const displayLeads=leads>0?leads:(msgs>0?msgs:0);
+    const leadsLabel=leads>0?String(leads):(msgs>0?`${msgs} <span class="badge purple" style="font-size:9px">msg</span>`:'0');
+    const cpl=displayLeads>0?gasto/displayLeads:0;
     const cplBadge=cpl>0&&avgCPL>0&&cpl>avgCPL*1.2?' <span class="badge red" style="font-size:9px">CPL alto</span>':'';
     return `<tr>
       <td style="font-weight:500;color:var(--white)">${esc(nome)}${cplBadge}</td><td>${stBadge}</td>
-      <td style="font-weight:600">${fmtMoney(gasto)}</td><td>${impressoes.toLocaleString('pt-BR')}</td><td>${cliques.toLocaleString('pt-BR')}</td><td>${leads}</td><td>${msgs}</td>
+      <td style="font-weight:600">${fmtMoney(gasto)}</td><td>${impressoes.toLocaleString('pt-BR')}</td><td>${cliques.toLocaleString('pt-BR')}</td><td>${leadsLabel}</td><td>${msgs}</td>
       <td>${ctr.toFixed(2)}%</td><td>${cpl>0?fmtMoney(cpl):'—'}</td></tr>`;
   }).join('');
 }
@@ -2844,7 +2847,7 @@ async function marcosSendMsg(){
     const{data:{session}}=await sb.auth.getSession();
     const token=session?.access_token||'';
     // Build context
-    const ativas=_cedMetaCamp.filter(c=>c.status==='ACTIVE').map(c=>`${c.nome}: R$${(parseFloat(c.gasto)||0).toFixed(0)} gasto, ${c.conversoes||0} leads, CPL R$${(c.conversoes>0?(parseFloat(c.gasto)/c.conversoes):0).toFixed(0)}, CTR ${(parseFloat(c.ctr)||0).toFixed(2)}%`).join('\n');
+    const ativas=_cedMetaCamp.filter(c=>c.status==='ACTIVE').map(c=>{const g=parseFloat(c.gasto)||0;const l=c.conversoes||0;const m=c.messages_count||0;const proxy=l||m;const cpl=proxy>0?g/proxy:0;return `${c.nome}: R$${g.toFixed(0)} gasto, leads_reais: ${l}, mensagens_iniciadas: ${m}, CPL R$${cpl.toFixed(0)}, CTR ${(parseFloat(c.ctr)||0).toFixed(2)}%`;}).join('\n');
     const funilData=_cedSge.slice(0,5).map(s=>`${s.curso}: ${s.inscritos} insc, ${s.pendentes} pend, ${s.matriculados} matric`).join('\n');
     const saldoInfo=`Saldo: ${fmtMoney(_cedMeta?.saldo_atual||0)}, Gasto mês: ${fmtMoney(_cedMeta?.gasto_mes||0)}`;
     const ctx=`[CONTEXTO CEDTEC - ${new Date().toISOString().split('T')[0]}]\nCampanhas ativas:\n${ativas||'Nenhuma'}\nFunil SGE:\n${funilData||'Sem dados'}\n${saldoInfo}`;

@@ -38,6 +38,8 @@ interface CampaignInsight {
   clicks: string;
   ctr: string;
   cpc: string;
+  reach?: string;
+  frequency?: string;
   actions?: Array<{ action_type: string; value: string }>;
   date_start: string;
   date_stop: string;
@@ -61,7 +63,7 @@ async function fetchCampaigns(accountId: string, token: string): Promise<Campaig
 }
 
 async function fetchCampaignInsights(campaignId: string, token: string): Promise<CampaignInsight | null> {
-  const url = `${GRAPH_API}/${campaignId}/insights?fields=spend,impressions,clicks,ctr,cpc,actions&date_preset=last_30d&access_token=${token}`;
+  const url = `${GRAPH_API}/${campaignId}/insights?fields=spend,impressions,clicks,ctr,cpc,actions,action_values,reach,frequency&date_preset=last_30d&access_token=${token}`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.error) {
@@ -71,16 +73,28 @@ async function fetchCampaignInsights(campaignId: string, token: string): Promise
   return data.data?.[0] || null;
 }
 
+const LEAD_ACTIONS = new Set([
+  'lead',
+  'onsite_conversion.lead_grouped',
+  'offsite_conversion.fb_pixel_lead',
+  'onsite_conversion.flow_complete'
+]);
+const MSG_ACTIONS = new Set([
+  'onsite_conversion.messaging_conversation_started_7d',
+  'onsite_conversion.messaging_first_reply',
+  'onsite_conversion.post_save',
+  'omni_initiated_checkout'
+]);
+
 function extractLeadsAndMessages(actions?: Array<{ action_type: string; value: string }>): { leads: number; messages: number } {
   if (!actions) return { leads: 0, messages: 0 };
   let leads = 0, messages = 0;
   for (const a of actions) {
-    if (a.action_type === 'lead' || a.action_type === 'onsite_conversion.lead_grouped' || a.action_type === 'offsite_conversion.fb_pixel_lead') {
-      leads += parseInt(a.value) || 0;
-    } else if (a.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
-      messages += parseInt(a.value) || 0;
-    }
+    const v = parseInt(a.value) || 0;
+    if (LEAD_ACTIONS.has(a.action_type)) leads += v;
+    else if (MSG_ACTIONS.has(a.action_type)) messages += v;
   }
+  console.log('[MetaSync] Actions parsed:', actions.map(a => `${a.action_type}=${a.value}`).join(', '), `→ leads=${leads}, msgs=${messages}`);
   return { leads, messages };
 }
 
