@@ -10,9 +10,12 @@ const GRAPH_API = 'https://graph.facebook.com/v19.0';
 
 // Resolve credentials: table first, env secrets as fallback
 async function getCredentials(sb: any): Promise<{ token: string; accountId: string }> {
-  const { data } = await sb.from('meta_conexoes').select('access_token, ad_account_id').eq('ativo', true).limit(1).single();
+  const { data, error } = await sb.from('meta_conexoes').select('access_token, ad_account_id').limit(1).single();
+  console.log('[MetaSync] DB credentials:', data ? `account=${data.ad_account_id}, token=${data.access_token?.slice(0,8)}...` : 'none', error ? `error: ${error.message}` : '');
+  console.log('[MetaSync] ENV fallback:', ENV_META_AD_ACCOUNT_ID ? `account=${ENV_META_AD_ACCOUNT_ID}` : 'none', ENV_META_ACCESS_TOKEN ? 'token=set' : 'token=empty');
   const token = data?.access_token || ENV_META_ACCESS_TOKEN;
   const accountId = data?.ad_account_id || ENV_META_AD_ACCOUNT_ID;
+  console.log('[MetaSync] Using:', accountId ? `act_****${accountId.slice(-4)}` : 'NONE', token ? 'token=OK' : 'token=MISSING');
   return { token, accountId };
 }
 
