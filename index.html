@@ -862,6 +862,8 @@ async function initApp(){
   requestNotifPermission();
   if(notifInterval) clearInterval(notifInterval);
   notifInterval = setInterval(checkNotifs, 60000);
+  // Re-schedule task reminders every hour
+  setInterval(()=>{ loadTasks(); }, 3600000);
 }
 
 // ── SIDEBAR & NAVIGATION ─────────────────────────────────
@@ -1085,6 +1087,7 @@ async function loadTasks(){
   window._tasks=data||[];
   renderKanban();
   document.getElementById('tasks-badge').textContent=(data||[]).filter(t=>t.status==='pendente'||t.status==='em_andamento').length;
+  scheduleReminders();
 }
 
 function renderKanban(){
@@ -1118,7 +1121,7 @@ function renderKanban(){
           const empLabel=getEntidadeNome(t.entidade_id);
           return `
           <div class="task-card" draggable="true" data-id="${t.id}" onclick="openEditTask('${t.id}')">
-            <div class="task-ttl">${esc(t.titulo)}</div>
+            <div class="task-ttl">${t.lembrete_em?`<span style="font-size:11px;color:var(--gold);margin-right:4px" title="Lembrete: ${new Date(t.lembrete_em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}">🔔</span>`:''}${esc(t.titulo)}</div>
             ${t.descricao?`<div class="task-desc">${esc(t.descricao)}</div>`:''}
             <div class="task-footer">
               <div class="row" style="gap:6px;flex-wrap:wrap">
@@ -1184,12 +1187,17 @@ function openNewTask(status='pendente'){
     <label class="m-label">Data de vencimento</label><input class="m-input" type="date" id="m-task-date">
     <label class="m-label">Status</label>
     <select class="m-select" id="m-task-status"><option value="pendente" ${status==='pendente'?'selected':''}>Pendente</option><option value="em_andamento" ${status==='em_andamento'?'selected':''}>Em andamento</option></select>
+    <label class="m-label">🔔 Lembrar em (opcional)</label>
+    <div class="row" style="gap:8px"><input class="m-input" type="date" id="m-task-lemb-date" style="flex:1"><input class="m-input" type="time" id="m-task-lemb-time" style="flex:1"></div>
   `,[
     {label:'Cancelar',cls:'btn-cancel',action:closeModal},
     {label:'Criar tarefa',cls:'btn-confirm',action:async()=>{
       const titulo=document.getElementById('m-task-ttl').value.trim();
       if(!titulo){showToast('⚠️','Preencha o título','');return;}
-      await sb.from('tarefas').insert({titulo,descricao:document.getElementById('m-task-desc').value.trim()||null,entidade_id:document.getElementById('m-task-emp').value||null,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null});
+      const lembDate=document.getElementById('m-task-lemb-date').value;
+      const lembTime=document.getElementById('m-task-lemb-time').value;
+      const lembrete_em=(lembDate&&lembTime)?new Date(lembDate+'T'+lembTime).toISOString():null;
+      await sb.from('tarefas').insert({titulo,descricao:document.getElementById('m-task-desc').value.trim()||null,entidade_id:document.getElementById('m-task-emp').value||null,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null,lembrete_em});
       closeModal(); loadTasks(); loadDashboard(); showToast('✅','Tarefa criada!','');
     }}
   ]);
@@ -1210,12 +1218,17 @@ function openEditTask(id){
     <label class="m-label">Status</label>
     <select class="m-select" id="m-task-status"><option value="pendente" ${t.status==='pendente'?'selected':''}>Pendente</option><option value="em_andamento" ${t.status==='em_andamento'?'selected':''}>Em andamento</option><option value="concluida" ${t.status==='concluida'?'selected':''}>Concluída</option></select>
     <label class="m-label">Data de vencimento</label><input class="m-input" type="date" id="m-task-date" value="${dateVal}">
+    <label class="m-label">🔔 Lembrar em (opcional)</label>
+    <div class="row" style="gap:8px"><input class="m-input" type="date" id="m-task-lemb-date" value="${t.lembrete_em?t.lembrete_em.slice(0,10):''}" style="flex:1"><input class="m-input" type="time" id="m-task-lemb-time" value="${t.lembrete_em?t.lembrete_em.slice(11,16):''}" style="flex:1"></div>
   `,[
     {label:'Excluir',cls:'btn-cancel',style:'color:var(--red2)',action:async()=>{if(confirm('Excluir tarefa?')){await sb.from('tarefas').delete().eq('id',id);closeModal();loadTasks();loadDashboard();showToast('🗑️','Tarefa excluída','');}}},
     {label:'Salvar',cls:'btn-confirm',action:async()=>{
       const titulo=document.getElementById('m-task-ttl').value.trim();
       if(!titulo) return;
-      const update={titulo,descricao:document.getElementById('m-task-desc').value.trim()||null,entidade_id:document.getElementById('m-task-emp').value||null,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null};
+      const lembDate=document.getElementById('m-task-lemb-date').value;
+      const lembTime=document.getElementById('m-task-lemb-time').value;
+      const lembrete_em=(lembDate&&lembTime)?new Date(lembDate+'T'+lembTime).toISOString():null;
+      const update={titulo,descricao:document.getElementById('m-task-desc').value.trim()||null,entidade_id:document.getElementById('m-task-emp').value||null,prioridade:document.getElementById('m-task-prio').value,status:document.getElementById('m-task-status').value,data_vencimento:document.getElementById('m-task-date').value||null,lembrete_em};
       if(update.status==='concluida'&&t.status!=='concluida') update.data_conclusao=new Date().toISOString();
       await sb.from('tarefas').update(update).eq('id',id);
       closeModal(); loadTasks(); loadDashboard(); showToast('✅','Tarefa atualizada','');
@@ -1507,17 +1520,60 @@ ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}
 sbtn.onclick=sendMsg;
 
 
-let recognition=null,isRec=false;
+let recognition=null,isRec=false,recTimeout=null;
+function resetMic(){
+  isRec=false;
+  if(recTimeout){clearTimeout(recTimeout);recTimeout=null;}
+  const btn=document.getElementById('mic-btn');
+  btn.classList.remove('rec');
+  btn.textContent='🎙️';
+  ta.style.fontStyle='';
+  ta.style.color='';
+}
 document.getElementById('mic-btn').onclick=()=>{
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){showToast('⚠️','Microfone não suportado','Use Chrome');return;}
-  if(!recognition){recognition=new SR();recognition.lang='pt-BR';recognition.continuous=false;recognition.interimResults=false;
-    recognition.onresult=e=>{ta.value=e.results[0][0].transcript;sbtn.disabled=false;ta.focus();};
-    recognition.onend=()=>{isRec=false;document.getElementById('mic-btn').classList.remove('rec');document.getElementById('mic-btn').textContent='🎙️';};
-    recognition.onerror=()=>{isRec=false;document.getElementById('mic-btn').classList.remove('rec');document.getElementById('mic-btn').textContent='🎙️';};
+  if(!SR){showToast('⚠️','Microfone não suportado','Use Chrome ou Safari');return;}
+  if(isRec){recognition.stop();resetMic();return;}
+  if(!recognition){
+    recognition=new SR();
+    recognition.lang='pt-BR';
+    recognition.continuous=false;
+    recognition.interimResults=true;
+    recognition.onresult=e=>{
+      let interim='',final='';
+      for(let i=0;i<e.results.length;i++){
+        if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+        else interim+=e.results[i][0].transcript;
+      }
+      if(final){
+        ta.value=final;
+        ta.style.fontStyle='';ta.style.color='';
+        sbtn.disabled=false;
+      } else if(interim){
+        ta.value=interim;
+        ta.style.fontStyle='italic';ta.style.color='var(--text2)';
+      }
+    };
+    recognition.onend=()=>{
+      resetMic();
+      if(ta.value.trim()){sbtn.disabled=false;ta.focus();}
+    };
+    recognition.onerror=e=>{
+      resetMic();
+      if(e.error==='not-allowed') showToast('🎙️','Microfone bloqueado','Ative nas configurações do navegador');
+      else if(e.error==='network') showToast('⚠️','Sem conexão','Verifique sua internet');
+      // 'no-speech' e 'aborted' resetam silenciosamente
+    };
   }
-  if(isRec){recognition.stop();}
-  else{recognition.start();isRec=true;document.getElementById('mic-btn').classList.add('rec');document.getElementById('mic-btn').textContent='⏹️';showToast('🎙️','Gravando...','Fale agora');}
+  try{
+    recognition.start();
+    isRec=true;
+    const btn=document.getElementById('mic-btn');
+    btn.classList.add('rec');
+    btn.textContent='⏹️';
+    ta.value='';ta.placeholder='Ouvindo...';
+    recTimeout=setTimeout(()=>{if(isRec){recognition.stop();ta.placeholder='Digite ou grave um áudio...';}},15000);
+  }catch(e){resetMic();showToast('⚠️','Erro ao iniciar microfone','');}
 };
 
 async function sendMsg(){
@@ -1896,6 +1952,28 @@ function triggerNotif(title,msg,ico='🌿'){
   showToast(ico,title,msg);
 }
 document.getElementById('notif-toggle').onclick=()=>showToast('🔔','Notificações','Sem novas notificações');
+
+// ── TASK REMINDERS ───────────────────────────────────────
+let _reminderTimers=[];
+async function scheduleReminders(){
+  // Clear existing timers
+  _reminderTimers.forEach(t=>clearTimeout(t));
+  _reminderTimers=[];
+  const tasks=window._tasks||[];
+  const now=Date.now();
+  const in24h=now+24*60*60*1000;
+  tasks.forEach(t=>{
+    if(!t.lembrete_em||t.status==='concluida') return;
+    const target=new Date(t.lembrete_em).getTime();
+    if(target<=now||target>in24h) return;
+    const delay=target-now;
+    const timer=setTimeout(()=>{
+      triggerNotif('🔔 '+t.titulo,'Lembrete de tarefa','🔔');
+    },delay);
+    _reminderTimers.push(timer);
+  });
+  if(_reminderTimers.length) console.log('[Reminders]',_reminderTimers.length,'lembretes agendados');
+}
 
 // ── MODAL ─────────────────────────────────────────────────
 function openModal(ttl,sub,content,actions=[]){
