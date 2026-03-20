@@ -1,22 +1,35 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const ENV_META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') ?? '';
-const ENV_META_AD_ACCOUNT_ID = Deno.env.get('META_AD_ACCOUNT_ID') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const ENV_META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') ?? '';
+const ENV_META_AD_ACCOUNT_ID = Deno.env.get('META_AD_ACCOUNT_ID') ?? '';
 
 const GRAPH_API = 'https://graph.facebook.com/v19.0';
 
-// Resolve credentials: table first, env secrets as fallback
+function getSb() {
+  // Prefer service role, fallback to anon
+  const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+  console.log('[MetaSync] Supabase URL:', SUPABASE_URL ? 'set' : 'MISSING');
+  console.log('[MetaSync] Using key:', SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : SUPABASE_ANON_KEY ? 'anon' : 'NONE');
+  return createClient(SUPABASE_URL, key);
+}
+
 async function getCredentials(sb: any): Promise<{ token: string; accountId: string }> {
-  const { data, error } = await sb.from('meta_conexoes').select('access_token, ad_account_id').limit(1).single();
-  console.log('[MetaSync] DB credentials:', data ? `account=${data.ad_account_id}, token=${data.access_token?.slice(0,8)}...` : 'none', error ? `error: ${error.message}` : '');
-  console.log('[MetaSync] ENV fallback:', ENV_META_AD_ACCOUNT_ID ? `account=${ENV_META_AD_ACCOUNT_ID}` : 'none', ENV_META_ACCESS_TOKEN ? 'token=set' : 'token=empty');
-  const token = data?.access_token || ENV_META_ACCESS_TOKEN;
-  const accountId = data?.ad_account_id || ENV_META_AD_ACCOUNT_ID;
-  console.log('[MetaSync] Using:', accountId ? `act_****${accountId.slice(-4)}` : 'NONE', token ? 'token=OK' : 'token=MISSING');
-  return { token, accountId };
+  try {
+    const { data, error } = await sb.from('meta_conexoes').select('access_token, ad_account_id').limit(1);
+    console.log('[MetaSync] DB query result:', JSON.stringify(data), 'error:', JSON.stringify(error));
+    const row = data?.[0];
+    const token = row?.access_token || ENV_META_ACCESS_TOKEN;
+    const accountId = row?.ad_account_id || ENV_META_AD_ACCOUNT_ID;
+    console.log('[MetaSync] Resolved:', accountId ? `act_****${accountId.slice(-4)}` : 'NO_ACCOUNT', token ? `token=${token.slice(0,8)}...` : 'NO_TOKEN');
+    return { token, accountId };
+  } catch (e) {
+    console.error('[MetaSync] getCredentials error:', e);
+    return { token: ENV_META_ACCESS_TOKEN, accountId: ENV_META_AD_ACCOUNT_ID };
+  }
 }
 
 interface CampaignInsight {
@@ -82,16 +95,18 @@ Deno.serve(async (req: Request) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
   try {
-    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    console.log('[MetaSync] === START ===');
+    const sb = getSb();
     const { token, accountId } = await getCredentials(sb);
 
     if (!token || !accountId) {
+      console.log('[MetaSync] FAIL: missing credentials');
       return new Response(JSON.stringify({
         error: 'Credenciais Meta não configuradas. Preencha na aba Conexão Meta ou nos Secrets do Supabase.'
       }), { status: 400, headers });
     }
 
-    console.log(`[MetaSync] Using account: act_****${accountId.slice(-4)}`);
+    console.log(`[MetaSync] Fetching campaigns for act_****${accountId.slice(-4)}...`);
     const campaigns = await fetchCampaigns(accountId, token);
     console.log(`[MetaSync] Found ${campaigns.length} campaigns`);
 
@@ -126,18 +141,12 @@ Deno.serve(async (req: Request) => {
         sincronizado_em: now
       };
 
-      // Upsert by campaign_id
       const { error } = await sb
         .from('meta_campanhas_cache')
         .upsert(row, { onConflict: 'campaign_id' });
 
       if (error) {
         console.error(`[MetaSync] Upsert error for ${camp.name}:`, error.message);
-        // Try insert if upsert fails (no unique constraint)
-        const { error: insertErr } = await sb
-          .from('meta_campanhas_cache')
-          .insert(row);
-        if (insertErr) console.error(`[MetaSync] Insert fallback error:`, insertErr.message);
       }
 
       results.push({
@@ -146,15 +155,17 @@ Deno.serve(async (req: Request) => {
         spend, leads, cpl: cpl.toFixed(2), ctr: ctr.toFixed(2)
       });
 
-      console.log(`[MetaSync] ${camp.name}: R$${spend.toFixed(2)}, ${leads} leads, CPL R$${cpl.toFixed(2)}`);
+      console.log(`[MetaSync] ${camp.name}: R$${spend.toFixed(2)}, ${leads} leads`);
     }
 
-    // Update meta_conexoes status
+    // Update connection status
     await sb.from('meta_conexoes').update({
       status: 'conectado',
       last_sync_at: now,
       campaigns_count: results.length
     }).eq('ad_account_id', accountId);
+
+    console.log(`[MetaSync] === DONE: ${results.length} campaigns synced ===`);
 
     return new Response(JSON.stringify({
       synced: results.length,
@@ -163,7 +174,7 @@ Deno.serve(async (req: Request) => {
     }), { headers });
 
   } catch (err) {
-    console.error('[MetaSync] Error:', err);
+    console.error('[MetaSync] FATAL:', err.message, err.stack);
     return new Response(JSON.stringify({
       error: err.message
     }), { status: 500, headers });
