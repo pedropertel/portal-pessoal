@@ -713,7 +713,7 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
                 <label class="m-label">Access Token</label>
                 <div class="row" style="gap:0">
                   <input class="m-input" id="ced-meta-token-input" type="password" placeholder="Cole seu token aqui" style="border-radius:var(--r-sm) 0 0 var(--r-sm);flex:1">
-                  <div class="btn-action" onclick="const i=document.getElementById('ced-meta-token-input');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px;height:42px">👁</div>
+                  <button class="btn-action" id="ced-token-toggle" type="button" style="border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px;height:42px">👁</button>
                 </div>
                 <div style="margin-bottom:12px;font-size:11px;color:var(--text2)" id="ced-meta-camp-count"></div>
                 <div class="row" style="gap:8px;flex-wrap:wrap">
@@ -2818,9 +2818,15 @@ function cedtecRenderConexao(){
     subEl.textContent='Preencha os campos abaixo';
     bannerEl.style.display='flex';
   }
-  // Populate inputs
-  if(c?.ad_account_id&&!accInput.value) accInput.value=c.ad_account_id;
-  if(c?.access_token&&!tokInput.value) tokInput.placeholder='••••••••••'+c.access_token.slice(-6);
+  // Populate inputs with real values
+  if(c?.ad_account_id) accInput.value=c.ad_account_id;
+  if(c?.access_token) tokInput.value=c.access_token;
+  // Toggle button
+  const toggleBtn=document.getElementById('ced-token-toggle');
+  toggleBtn.onclick=()=>{
+    tokInput.type=tokInput.type==='password'?'text':'password';
+    toggleBtn.textContent=tokInput.type==='password'?'👁':'🙈';
+  };
   // Campaign count
   document.getElementById('ced-meta-camp-count').textContent=hasCamps?_cedMetaCamp.length+' campanhas sincronizadas':'Nenhuma campanha sincronizada';
   // Last sync
@@ -2830,20 +2836,22 @@ function cedtecRenderConexao(){
 
 async function cedtecSaveConexao(){
   const accId=document.getElementById('ced-meta-account-input').value.trim();
-  const token=document.getElementById('ced-meta-token-input').value.trim();
+  const tokenVal=document.getElementById('ced-meta-token-input').value.trim();
   if(!accId){showToast('⚠️','Preencha o Ad Account ID','');return;}
-  // Token: use new value if typed, keep existing if empty
-  const tokenToSave=token||(_cedConexao?.access_token||'');
-  if(!tokenToSave){showToast('⚠️','Preencha o Access Token','');return;}
-  const row={ad_account_id:accId,access_token:tokenToSave,ativo:true,status:'configurado'};
+  if(!tokenVal){showToast('⚠️','Preencha o Access Token','');return;}
+  console.log('[CEDTEC Save] ad_account_id:', accId, 'access_token_length:', tokenVal.length, 'starts_with:', tokenVal.slice(0,8));
+  const row={ad_account_id:accId,access_token:tokenVal,ativo:true,status:'configurado'};
+  let err;
   if(_cedConexao?.id){
-    await sb.from('meta_conexoes').update(row).eq('id',_cedConexao.id);
+    const res=await sb.from('meta_conexoes').update(row).eq('id',_cedConexao.id);
+    err=res.error;
   } else {
-    await sb.from('meta_conexoes').insert(row);
+    const res=await sb.from('meta_conexoes').insert(row);
+    err=res.error;
   }
+  if(err){console.error('[CEDTEC Save] Error:',err);showToast('❌','Erro ao salvar',err.message);return;}
   showToast('💾','Configuração salva!','Sincronizando...');
   await loadCedtec();
-  // Auto sync
   await cedtecSyncMeta();
 }
 
