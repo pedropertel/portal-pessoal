@@ -57,11 +57,10 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 
 ## Bugs conhecidos / limitações atuais
 
-- **Bug 403 RESOLVIDO**: era falta de GRANT SELECT/INSERT/UPDATE/DELETE para roles `authenticated` e `anon`. Corrigido via migração `grant_authenticated_data_privileges`.
-- **deploy.sh não existe**: o script referenciado no CLAUDE.md antigo nunca foi criado. Deploy é feito via `git push origin main` (Vercel detecta automaticamente).
 - **Ícones PWA faltando**: `manifest.json` referencia `/icon-192.png` e `/icon-512.png` que não existem no repositório.
 - **Service Worker básico**: só cache de assets estáticos, não tem sincronização offline real.
 - **Chat não faz streaming**: resposta do Claude chega toda de uma vez, sem efeito de digitação progressiva.
+- **Meta Ads**: requer token de acesso válido da Meta (começa com `EAA...`). Configurar na aba CEDTEC → Conexão Meta. Token expira periodicamente e precisa ser renovado no Meta for Developers.
 - **Gráfico de pizza**: border color hardcoded `#1E2435` não adapta ao tema claro.
 - **Sem validação de formulários**: modais aceitam dados vazios em alguns campos opcionais sem feedback.
 
@@ -122,7 +121,7 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 
 ### 6. CEDTEC (`page-cedtec`)
 - 7 sub-abas: Conexão Meta, Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar SGE
-- **Conexão Meta**: formulário editável (Ad Account ID + Access Token com toggle 👁), salva em `meta_conexoes`, 3 estados (vermelho=desconectado, amarelo=configurado, verde=conectado), sync automática ao salvar, instruções de configuração
+- **Conexão Meta**: formulário editável (Ad Account ID + Access Token com toggle 👁), salva em `meta_conexoes`, 3 estados (vermelho=desconectado, amarelo=configurado, verde=conectado), sync automática ao salvar, instruções de configuração. Credenciais lidas pela Edge Function via service_role (grants configurados). Token real preenchido no input para edição.
 - **Visão geral**: alerta vermelho quando saldo Meta < 3 dias, 4 stat cards + CPL/CTR com badges de alerta, gráfico Gasto vs Leads, campanhas ativas, funil resumido
 - **Saldo Meta**: valor grande com barra de progresso, gasto hoje, média diária, dias restantes, histórico de recargas com CRUD
 - **Campanhas**: dados 100% da Meta API via Edge Function `meta-sync` (sem CRUD manual), tabela com status, gasto, impressões, cliques, leads, CTR, CPL, badges de alerta inline
