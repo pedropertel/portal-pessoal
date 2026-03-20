@@ -124,7 +124,7 @@ Portal pessoal e de gestão empresarial do Pedro Pertel (Vitória-ES). Web app P
 - 6 sub-abas: Visão geral, Saldo Meta, Campanhas, Funil, Matrículas, Importar
 - **Visão geral**: alerta vermelho quando saldo Meta < 3 dias, 4 stat cards, campanhas ativas, funil resumido
 - **Saldo Meta**: valor grande com barra de progresso, gasto hoje, média diária, dias restantes, histórico de recargas com CRUD
-- **Campanhas**: tabela com status, curso, gasto, leads, CTR, CPL. CRUD completo
+- **Campanhas**: sincronização automática com Meta Ads via Edge Function `meta-sync`, tabela com status, gasto, impressões, cliques, leads, CTR, CPL, badges de alerta inline. Botão "Sincronizar Meta" com timestamp. Fallback para dados manuais
 - **Funil**: visual por curso (inscritos → pendentes → matriculados) com taxas de conversão
 - **Matrículas**: totais, custo por matrícula, breakdown por curso
 - **Importar**: instruções + botão que abre chat com prompt de importação SGE
@@ -187,6 +187,12 @@ portal-pessoal/
 ├── CLAUDE.md           # Este arquivo — contexto para o Claude Code
 └── supabase/
     └── functions/
+        ├── meta-sync/
+        │   └── index.ts    # Edge Function para sincronizar Meta Ads
+        │       - URL: /functions/v1/meta-sync
+        │       - Chama Graph API v19.0 /campaigns + /insights
+        │       - Upsert em meta_campanhas_cache
+        │       - Secrets: META_ACCESS_TOKEN, META_AD_ACCOUNT_ID
         └── chat-claude/
             └── index.ts    # Edge Function com Claude Dispatch
                 - URL: /functions/v1/chat-claude
@@ -221,7 +227,7 @@ portal-pessoal/
 **Documentos**: `loadDocs`, `renderDocs`, `openNewFolder`, `renameFolder`, `deleteFolder`, `triggerUpload`, `downloadDoc`, `openFileViewer`, `closeFileViewer`, `shareDoc`
 **Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`, `resetMic`
 **Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`, `handleActionSgeImport`
-**CEDTEC**: `loadCedtec`, `cedtecTab`, `cedtecRenderVisao`, `cedtecRenderSaldo`, `cedtecRenderCampanhas`, `cedtecRenderFunil`, `cedtecRenderMatriculas`, `cedtecRenderImport`, `cedtecOpenRecarga`, `cedtecDeleteRecarga`, `cedtecOpenCampanha`, `cedtecEditCampanha`
+**CEDTEC**: `loadCedtec`, `cedtecTab`, `cedtecRenderVisao`, `cedtecRenderSaldo`, `cedtecRenderCampanhas`, `cedtecRenderFunil`, `cedtecRenderMatriculas`, `cedtecRenderImport`, `cedtecRenderTrend`, `cedtecSyncMeta`, `cedtecOpenRecarga`, `cedtecDeleteRecarga`, `cedtecOpenCampanha`, `cedtecEditCampanha`
 **Agenda**: `loadAgenda`, `renderAgendaList`, `renderMiniCalendar`, `renderAgendaStats`, `openNewEvent`, `openEditEvent`
 **Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderIconPicker`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
 **Notificações**: `checkNotifs`, `triggerNotif`, `closeNotif`, `requestNotifPermission`, `scheduleReminders`
@@ -249,7 +255,7 @@ cedtec_recargas        — histórico de recargas (valor, data, notas)
 cedtec_campanhas       — campanhas Meta (nome, status, curso, gasto, leads, CTR, CPL)
 cedtec_sge_importacoes — importações do SGE (inscritos, pendentes, matriculados, curso, periodo)
 meta_conexoes          — conexões Meta/Facebook (módulo pendente)
-meta_campanhas_cache   — cache de campanhas Meta (módulo pendente)
+meta_campanhas_cache   — cache de campanhas Meta Ads (campaign_id unique, nome, status, gasto, impressoes, cliques, conversoes, ctr, cpc, sincronizado_em)
 sitio_categorias       — centros de custo do sítio (nome, cor, icone, tipo: terreno/obra/lavoura/infra/geral)
 sitio_lancamentos      — lançamentos financeiros (descricao, valor, centro_custo_id, tipo: realizado/planejado, data_prevista, data_realizada, notas, comprovante_url)
 ```
