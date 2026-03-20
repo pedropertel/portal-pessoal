@@ -267,7 +267,7 @@ Grants: SELECT, INSERT, UPDATE, DELETE para `authenticated` e `anon`.
 
 3. **Arquivo único** — todo o app está em `index.html`. Para editar, usar busca por seções marcadas com `// ── NOME ──`.
 
-4. **Edge Function `chat-claude` (Claude Dispatch)** — `verify_jwt: false`. Modelo: `claude-haiku-4-5-20251001`. Dispatch em 2 etapas: (1) classificação rápida do domínio com max_tokens: 20, (2) resposta com system prompt especializado. 5 domínios: tarefas, agenda, grafica, sitio, geral. Código fonte em `supabase/functions/chat-claude/index.ts`. Deploy via Supabase CLI: `supabase functions deploy chat-claude --project-ref msbwplsknncnxwsalumd`.
+4. **Edge Function `chat-claude` (Claude Dispatch)** — `verify_jwt: false`. Modelo: `claude-haiku-4-5-20251001`. Dispatch em 3 etapas: (1) classificação rápida do domínio, (2) resposta com system prompt especializado com horário de Brasília injetado, (3) pós-processamento de datas no actionData (`postProcessActionData` converte 'hoje', 'amanhã', DD/MM/AAAA, nomes de dia para ISO 8601). 6 domínios: tarefas, agenda, grafica, sitio, cedtec, geral. Deploy via Supabase CLI: `supabase functions deploy chat-claude --project-ref msbwplsknncnxwsalumd`.
 
 5. **Entidades (empresas)** — carregadas uma vez no `initApp()` e armazenadas em `_entidades`. Usadas em tarefas, eventos e gráficos.
 
@@ -283,4 +283,4 @@ Grants: SELECT, INSERT, UPDATE, DELETE para `authenticated` e `anon`.
 
 11. **Módulo Sítio** — dados em `_sitioCentros` e `_sitioLancs`. `_sitioCentros` é carregado no `initApp()` (necessário para `handleActionGasto` no chat). Gráficos usando Chart.js. `fmtMoney()` formata valores. `parseDateBR()` converte DD/MM/AAAA → YYYY-MM-DD. Anexos/comprovantes são uploadeados para `documentos/sitio/comprovantes/` no Supabase Storage.
 
-12. **Datas brasileiras** — `parseDateBR()` aceita DD/MM/AAAA, DD-MM-AAAA e DD.MM.AA. Edge Function instrui Claude a retornar datas no formato DD/MM/AAAA. O frontend converte para ISO antes de salvar no banco.
+12. **Datas** — Dupla proteção: (a) Edge Function injeta data/hora de Brasília nos prompts e instrui Claude a usar ISO 8601, (b) `postProcessActionData()` na Edge Function converte linguagem natural ('hoje', 'amanhã 9h', 'segunda', DD/MM/AAAA) para ISO antes de enviar ao frontend. Frontend tem `parseDateBR()` como fallback adicional.
