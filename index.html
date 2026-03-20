@@ -682,87 +682,28 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
           </div>
         </div>
         <div class="row" style="gap:4px;flex-wrap:wrap" id="cedtec-tabs">
-          <div class="ptab on" data-tab="conexao" onclick="cedtecTab('conexao')">Conexão Meta</div>
-          <div class="ptab" data-tab="visao" onclick="cedtecTab('visao')">Visão geral</div>
-          <div class="ptab" data-tab="saldo" onclick="cedtecTab('saldo')">Saldo Meta</div>
+          <div class="ptab on" data-tab="visao" onclick="cedtecTab('visao')">Visão geral</div>
           <div class="ptab" data-tab="campanhas" onclick="cedtecTab('campanhas')">Campanhas</div>
+          <div class="ptab" data-tab="marcos" onclick="cedtecTab('marcos')">Marcos</div>
           <div class="ptab" data-tab="funil" onclick="cedtecTab('funil')">Funil</div>
-          <div class="ptab" data-tab="matriculas" onclick="cedtecTab('matriculas')">Matrículas</div>
-          <div class="ptab" data-tab="importar" onclick="cedtecTab('importar')">Importar SGE</div>
+          <div class="ptab" data-tab="saldo" onclick="cedtecTab('saldo')">Saldo Meta</div>
         </div>
         <!-- ALERTA SALDO -->
-        <div id="cedtec-alerta" style="display:none;background:linear-gradient(135deg,rgba(232,83,63,.15),rgba(232,83,63,.05));border:1px solid rgba(232,83,63,.3);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px">
+        <div id="cedtec-alerta" style="display:none;background:linear-gradient(135deg,rgba(232,83,63,.15),rgba(232,83,63,.05));border:1px solid rgba(232,83,63,.3);border-radius:var(--r);padding:14px 18px;align-items:center;gap:12px">
           <span style="font-size:24px">🚨</span>
           <div><div style="font-size:14px;font-weight:600;color:var(--red2)" id="cedtec-alerta-txt">Saldo Meta baixo!</div><div style="font-size:12px;color:var(--text2)" id="cedtec-alerta-sub">Recarregue para não pausar campanhas</div></div>
         </div>
-        <!-- CONEXÃO META -->
-        <div id="cedtec-conexao">
-          <div id="ced-meta-banner" style="display:none;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(245,166,35,.05));border:1px solid rgba(245,166,35,.3);border-radius:var(--r);padding:14px 18px;margin-bottom:12px;align-items:center;gap:12px">
-            <span style="font-size:24px">⚠️</span>
-            <div><div style="font-size:14px;font-weight:600;color:var(--gold2)">API Meta não configurada</div><div style="font-size:12px;color:var(--text2)">Preencha os campos abaixo e clique em Salvar</div></div>
-          </div>
-          <div class="chart-grid">
-            <div class="chart-card">
-              <div style="padding:20px">
-                <div class="row" style="gap:10px;margin-bottom:16px">
-                  <div id="ced-meta-status-ico" style="width:12px;height:12px;border-radius:50%;background:var(--text3);flex-shrink:0;margin-top:2px"></div>
-                  <div><div style="font-size:16px;font-weight:600;color:var(--white)" id="ced-meta-status-txt">Verificando...</div><div style="font-size:12px;color:var(--text2)" id="ced-meta-status-sub"></div></div>
-                </div>
-                <label class="m-label">Ad Account ID</label>
-                <input class="m-input" id="ced-meta-account-input" placeholder="ex: 123456789 (sem act_)" style="font-family:monospace">
-                <label class="m-label">Access Token</label>
-                <div class="row" style="gap:0">
-                  <input class="m-input" id="ced-meta-token-input" type="password" placeholder="Cole seu token aqui" style="border-radius:var(--r-sm) 0 0 var(--r-sm);flex:1">
-                  <button class="btn-action" id="ced-token-toggle" type="button" style="border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px;height:42px">👁</button>
-                </div>
-                <div style="margin-bottom:12px;font-size:11px;color:var(--text2)" id="ced-meta-camp-count"></div>
-                <div class="row" style="gap:8px;flex-wrap:wrap">
-                  <div class="btn-action primary" onclick="cedtecSaveConexao()" style="display:inline-flex">💾 Salvar configuração</div>
-                  <div class="btn-action" onclick="cedtecSyncMeta()" id="ced-sync-btn2" style="display:inline-flex">🔄 Sincronizar agora</div>
-                </div>
-                <div style="font-size:12px;color:var(--text2);margin-top:8px" id="ced-meta-last-sync"></div>
-              </div>
-            </div>
-            <div class="chart-card">
-              <div style="padding:20px">
-                <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:12px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">📖 Instruções de configuração ▾</div>
-                <div>
-                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
-                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">1. Criar App no Meta for Developers</div>
-                    <div style="font-size:11px;color:var(--text2)">Acesse developers.facebook.com → My Apps → Create App → Business</div>
-                  </div>
-                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
-                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">2. Gerar Access Token</div>
-                    <div style="font-size:11px;color:var(--text2)">Marketing API → Tools → Get Token → selecione ads_read + ads_management</div>
-                  </div>
-                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
-                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">3. Encontrar Ad Account ID</div>
-                    <div style="font-size:11px;color:var(--text2)">Business Settings → Ad Accounts → copie o ID numérico (sem "act_")</div>
-                  </div>
-                  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px">
-                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">4. Cole os dados aqui</div>
-                    <div style="font-size:11px;color:var(--text2)">Preencha os campos ao lado e clique em <b style="color:var(--teal)">Salvar configuração</b>. A sincronização será automática.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
         <!-- VISÃO GERAL -->
-        <div id="cedtec-visao" style="display:none">
+        <div id="cedtec-visao">
           <div class="stats-row">
-            <div class="stat-card blue"><div><div class="stat-label">Saldo Meta</div><div class="stat-value" id="ced-saldo">R$ 0</div><div class="stat-sub" id="ced-dias-rest">—</div></div><div class="stat-ico">💳</div></div>
-            <div class="stat-card teal"><div><div class="stat-label">Leads (inscritos)</div><div class="stat-value" id="ced-leads">0</div><div class="stat-sub">Total SGE</div></div><div class="stat-ico">📋</div></div>
-            <div class="stat-card green"><div><div class="stat-label">Matrículas</div><div class="stat-value" id="ced-matric">0</div><div class="stat-sub">SGE matriculados</div></div><div class="stat-ico">🎓</div></div>
-            <div class="stat-card gold"><div><div class="stat-label">Custo / matrícula</div><div class="stat-value" id="ced-cpm">—</div><div class="stat-sub">Gasto ÷ matrículas</div></div><div class="stat-ico">💰</div></div>
-          </div>
-          <div class="stats-row" style="margin-top:8px">
+            <div class="stat-card blue" style="cursor:pointer" onclick="cedtecTab('saldo')"><div><div class="stat-label">Saldo Meta</div><div class="stat-value" id="ced-saldo">R$ 0</div><div class="stat-sub" id="ced-dias-rest">—</div></div><div class="stat-ico">💳</div></div>
+            <div class="stat-card teal"><div><div class="stat-label">Leads Meta</div><div class="stat-value" id="ced-leads">0</div><div class="stat-sub">Campanhas ativas</div></div><div class="stat-ico">📋</div></div>
             <div class="stat-card purple"><div><div class="stat-label">CPL médio</div><div class="stat-value" id="ced-cpl-val">—</div><div class="stat-sub" id="ced-cpl-badge"></div></div><div class="stat-ico">📊</div></div>
             <div class="stat-card red"><div><div class="stat-label">CTR médio</div><div class="stat-value" id="ced-ctr-val">—</div><div class="stat-sub" id="ced-ctr-badge"></div></div><div class="stat-ico">📈</div></div>
           </div>
           <div class="chart-grid" style="margin-top:12px">
             <div class="chart-card">
-              <div class="chart-hdr"><div><div class="chart-ttl">Tendência: Gasto vs Leads</div><div class="chart-sub">Meta Ads — campanhas sincronizadas</div></div></div>
+              <div class="chart-hdr"><div><div class="chart-ttl">Gasto vs Leads</div><div class="chart-sub">Meta Ads</div></div></div>
               <div class="chart-wrap"><canvas id="ced-trend-chart"></canvas></div>
             </div>
             <div class="chart-card">
@@ -773,6 +714,69 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
           <div class="chart-card" style="margin-top:12px">
             <div class="chart-hdr"><div><div class="chart-ttl">Campanhas ativas</div></div></div>
             <div id="ced-campanhas-lista" style="max-height:280px;overflow-y:auto"></div>
+          </div>
+        </div>
+        <!-- CAMPANHAS -->
+        <div id="cedtec-campanhas" style="display:none">
+          <div class="row between" style="margin-bottom:8px">
+            <div style="font-size:12px;color:var(--text2)" id="ced-camp-sync"></div>
+            <div class="btn-action" onclick="cedtecSyncMeta()" id="ced-sync-btn">🔄 Sincronizar Meta</div>
+          </div>
+          <div class="table-card">
+            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Impressões</th><th>Cliques</th><th>Leads</th><th>Msgs</th><th>CTR</th><th>CPL</th></tr></thead>
+            <tbody id="ced-camp-body"><tr><td colspan="9" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha</td></tr></tbody></table>
+          </div>
+        </div>
+        <!-- MARCOS -->
+        <div id="cedtec-marcos" style="display:none">
+          <!-- Persona -->
+          <div class="chart-card" style="margin-bottom:8px">
+            <div style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);display:flex;align-items:center;gap:6px" onclick="const el=document.getElementById('marcos-persona-area');el.style.display=el.style.display==='none'?'block':'none';localStorage.setItem('marcos-persona-expanded',el.style.display!=='none')">⚙️ Persona do Marcos <span style="font-size:10px">▾</span></div>
+            <div id="marcos-persona-area" style="display:none;padding:0 16px 12px">
+              <textarea class="m-textarea" id="marcos-persona-txt" rows="4" style="font-size:12px"></textarea>
+              <div class="row" style="gap:6px;margin-top:6px">
+                <div class="btn-action" onclick="marcosRestorePersona()" style="font-size:11px">↩️ Restaurar padrão</div>
+                <div class="btn-action primary" onclick="marcosSavePersona()" style="font-size:11px">💾 Salvar persona</div>
+              </div>
+            </div>
+          </div>
+          <!-- Chat -->
+          <div class="chat-main" style="height:calc(100vh - var(--header-h) - 220px)">
+            <div class="chat-msgs" id="marcos-msgs">
+              <div class="chat-empty" id="marcos-empty">
+                <div class="chat-empty-ico">🧑‍💼</div>
+                <h3>Fala, Pedro!</h3>
+                <p>Marcos aqui. Gestor de tráfego do CEDTEC. Me pergunta sobre campanhas, CPL, funil, criativos — o que precisar.</p>
+              </div>
+            </div>
+            <div class="chat-chips" id="marcos-chips" style="display:flex">
+              <div class="chip" onclick="marcosSendQuick('Faz um resumo da semana das campanhas')">📊 Resumo da semana</div>
+              <div class="chip" onclick="marcosSendQuick('O que otimizar agora nas campanhas?')">💡 O que otimizar?</div>
+              <div class="chip" onclick="marcosSendQuick('Simula uma meta de 50 matrículas com CPL de R$20')">📈 Simular meta</div>
+            </div>
+            <div class="chat-bar">
+              <div class="chat-input-wrap">
+                <textarea class="chat-ta" id="marcos-ta" placeholder="Fale com o Marcos..." rows="1"></textarea>
+              </div>
+              <button class="send-btn" id="marcos-send-btn" disabled onclick="marcosSendMsg()">➤</button>
+            </div>
+          </div>
+        </div>
+        <!-- FUNIL -->
+        <div id="cedtec-funil" style="display:none">
+          <div class="row between" style="margin-bottom:8px">
+            <div></div>
+            <div class="btn-action" onclick="goPage('chat');setTimeout(()=>{document.getElementById('chat-ta').value='Importar dados do SGE:\\n';document.getElementById('chat-ta').focus();document.getElementById('send-btn').disabled=false;},200)">📥 Importar SGE</div>
+          </div>
+          <div id="ced-funil-full"></div>
+          <!-- Matrículas inline -->
+          <div style="margin-top:16px">
+            <div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:8px">🎓 Matrículas</div>
+            <div class="stats-row" id="ced-matric-stats"></div>
+            <div class="table-card" style="margin-top:8px">
+              <table class="tbl-hdr" style="width:100%"><thead><tr><th>Curso</th><th>Inscritos</th><th>Pendentes</th><th>Matriculados</th><th>Conversão</th></tr></thead>
+              <tbody id="ced-matric-body"></tbody></table>
+            </div>
           </div>
         </div>
         <!-- SALDO META -->
@@ -794,46 +798,6 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
             <div class="table-hdr-row"><div style="font-size:15px;font-weight:600;color:var(--white)">Histórico de recargas</div><div class="btn-action" onclick="cedtecOpenRecarga()">+ Recarga</div></div>
             <table class="tbl-hdr" style="width:100%"><thead><tr><th>Data</th><th>Valor</th><th>Notas</th><th></th></tr></thead>
             <tbody id="ced-recargas-body"><tr><td colspan="4" style="text-align:center;color:var(--text2);padding:24px">Nenhuma recarga</td></tr></tbody></table>
-          </div>
-        </div>
-        <!-- CAMPANHAS -->
-        <div id="cedtec-campanhas" style="display:none">
-          <div class="row between" style="margin-bottom:8px">
-            <div style="font-size:12px;color:var(--text2)" id="ced-camp-sync"></div>
-            <div class="btn-action" onclick="cedtecSyncMeta()" id="ced-sync-btn">🔄 Sincronizar Meta</div>
-          </div>
-          <div class="table-card">
-            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Campanha</th><th>Status</th><th>Gasto</th><th>Impressões</th><th>Cliques</th><th>Leads</th><th>CTR</th><th>CPL</th></tr></thead>
-            <tbody id="ced-camp-body"><tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha</td></tr></tbody></table>
-          </div>
-        </div>
-        <!-- FUNIL -->
-        <div id="cedtec-funil" style="display:none">
-          <div id="ced-funil-full"></div>
-        </div>
-        <!-- MATRÍCULAS -->
-        <div id="cedtec-matriculas" style="display:none">
-          <div class="stats-row" id="ced-matric-stats"></div>
-          <div class="table-card" style="margin-top:12px">
-            <div class="table-hdr-row"><div style="font-size:15px;font-weight:600;color:var(--white)">Por curso</div></div>
-            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Curso</th><th>Inscritos</th><th>Pendentes</th><th>Matriculados</th><th>Conversão</th></tr></thead>
-            <tbody id="ced-matric-body"></tbody></table>
-          </div>
-        </div>
-        <!-- IMPORTAR -->
-        <div id="cedtec-importar" style="display:none">
-          <div class="chart-card" style="margin-bottom:12px">
-            <div style="padding:20px;text-align:center">
-              <div style="font-size:36px;margin-bottom:10px">📥</div>
-              <div style="font-size:16px;font-weight:600;color:var(--white);margin-bottom:6px">Importar dados do SGE</div>
-              <div style="font-size:13px;color:var(--text2);max-width:400px;margin:0 auto;line-height:1.6">Exporte o relatório do SGE e cole o conteúdo no chat com a mensagem:<br><b style="color:var(--teal)">importar SGE</b></div>
-              <div class="btn-action primary" style="display:inline-flex;margin-top:16px" onclick="goPage('chat');setTimeout(()=>{document.getElementById('chat-ta').value='Importar dados do SGE:\\n';document.getElementById('chat-ta').focus();document.getElementById('send-btn').disabled=false;},200)">💬 Abrir chat para importar</div>
-            </div>
-          </div>
-          <div class="table-card">
-            <div class="table-hdr-row"><div style="font-size:15px;font-weight:600;color:var(--white)">Últimas importações</div></div>
-            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Data</th><th>Curso</th><th>Inscritos</th><th>Pendentes</th><th>Matriculados</th><th>Período</th></tr></thead>
-            <tbody id="ced-import-body"><tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">Nenhuma importação</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -923,7 +887,34 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
       <div class="page" id="page-config">
         <div class="breadcrumb"><b>Home</b><span>/</span><b>Configurações</b></div>
         <div class="page-title">⚙️ Configurações</div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:40px;text-align:center;color:var(--text2)"><div style="font-size:40px;margin-bottom:12px">🚧</div>Módulo em desenvolvimento — em breve!</div>
+        <!-- Integrações -->
+        <div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:8px">Integrações</div>
+        <div class="chart-card" style="margin-bottom:12px">
+          <div style="padding:16px">
+            <div class="row" style="gap:10px;margin-bottom:14px">
+              <div id="cfg-meta-status-ico" style="width:10px;height:10px;border-radius:50%;background:var(--text3);flex-shrink:0;margin-top:3px"></div>
+              <div><div style="font-size:14px;font-weight:600;color:var(--white)">Meta Ads (CEDTEC)</div><div style="font-size:12px;color:var(--text2)" id="cfg-meta-status-txt">—</div></div>
+            </div>
+            <label class="m-label">Ad Account ID</label>
+            <input class="m-input" id="cfg-meta-account" placeholder="ex: 123456789 (sem act_)" style="font-family:monospace">
+            <label class="m-label">Access Token</label>
+            <div class="row" style="gap:0">
+              <input class="m-input" id="cfg-meta-token" type="password" placeholder="Cole seu token aqui" style="border-radius:var(--r-sm) 0 0 var(--r-sm);flex:1">
+              <button class="btn-action" type="button" onclick="const i=document.getElementById('cfg-meta-token');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px;height:42px">👁</button>
+            </div>
+            <div class="row" style="gap:8px">
+              <div class="btn-action primary" onclick="cfgSaveMetaConexao()">💾 Salvar</div>
+              <div class="btn-action" onclick="cedtecSyncMeta()" id="ced-sync-btn2">🔄 Sincronizar</div>
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-top:6px" id="cfg-meta-last-sync"></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div style="padding:16px">
+            <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:4px">GitHub Vault (Marcos)</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Para ativar o vault Obsidian do Marcos, adicione <code style="color:var(--teal)">GITHUB_TOKEN</code> nos Secrets do Supabase (Personal Access Token com escopo repo)</div>
+          </div>
+        </div>
       </div>
 
     </main>
@@ -1075,6 +1066,7 @@ function goPage(name){
   if(name==='agenda') loadAgenda();
   if(name==='sitio') loadSitio();
   if(name==='cedtec') loadCedtec();
+  if(name==='config') loadConfig();
 }
 
 // ── THEME ─────────────────────────────────────────────────
@@ -2563,9 +2555,11 @@ function fmtMoney(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFr
 // ── CEDTEC MODULE ────────────────────────────────────────
 let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[], _cedMetaCamp=[], _cedConexao=null;
 let _cedTrendChart=null;
+let _marcosHistory=[], _marcosSending=false;
+const MARCOS_DEFAULT_PERSONA=`Você é Marcos, gestor de tráfego pago especialista em Meta Ads para instituições de ensino profissionalizante. Trabalha com o Pedro no CEDTEC há 2 anos. Seu estilo é direto, prático e sem enrolação. Conhece o mercado de cursos técnicos no ES. CPL alvo: R$15-25. CTR saudável: acima de 1%. Frequência máxima: 3.5. Fala como um sócio de confiança.`;
 
 function cedtecTab(tab){
-  ['conexao','visao','saldo','campanhas','funil','matriculas','importar'].forEach(t=>{
+  ['visao','campanhas','marcos','funil','saldo'].forEach(t=>{
     const el=document.getElementById('cedtec-'+t);
     if(el) el.style.display=t===tab?'':'none';
   });
@@ -2580,20 +2574,17 @@ async function loadCedtec(){
     sb.from('cedtec_sge_importacoes').select('*').order('importado_em',{ascending:false}).limit(100),
     sb.from('meta_campanhas_cache').select('*').order('sincronizado_em',{ascending:false}).limit(100)
   ]);
-  const{data:conexao}=await sb.from('meta_conexoes').select('*').eq('ativo',true).limit(1).single();
   _cedMeta=meta||{saldo_atual:0,limite:0,gasto_hoje:0,gasto_mes:0};
   _cedRecargas=rec||[];
   _cedCampanhas=camp||[];
   _cedSge=sge||[];
   _cedMetaCamp=metaCamp||[];
-  _cedConexao=conexao||null;
-  cedtecRenderConexao();
   cedtecRenderVisao();
   cedtecRenderSaldo();
   cedtecRenderCampanhas();
   cedtecRenderFunil();
   cedtecRenderMatriculas();
-  cedtecRenderImport();
+  marcosInit();
 }
 
 function cedtecRenderVisao(){
@@ -2697,9 +2688,10 @@ function cedtecRenderCampanhas(){
   document.getElementById('ced-camp-sync').textContent=syncTime?'Última sincronização: '+syncTime:(camps.length?'Dados manuais':'Sem campanhas — sincronize com a Meta');
 
   if(!camps.length){
-    document.getElementById('ced-camp-body').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha — clique em "Sincronizar Meta"</td></tr>';
+    document.getElementById('ced-camp-body').innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha — clique em "Sincronizar Meta"</td></tr>';
     return;
   }
+  const avgCPL=_cedMetaCamp.filter(x=>(x.conversoes||0)>0).length?_cedMetaCamp.filter(x=>(x.conversoes||0)>0).reduce((s,x)=>s+(parseFloat(x.gasto)||0)/(x.conversoes||1),0)/_cedMetaCamp.filter(x=>(x.conversoes||0)>0).length:0;
   document.getElementById('ced-camp-body').innerHTML=camps.map(c=>{
     const nome=c.nome||c.name;
     const status=c.status||'';
@@ -2709,14 +2701,13 @@ function cedtecRenderCampanhas(){
     const impressoes=c.impressoes||0;
     const cliques=c.cliques||0;
     const leads=c.conversoes||c.leads_meta||0;
+    const msgs=c.messages_count||0;
     const ctr=parseFloat(c.ctr)||0;
     const cpl=leads>0?gasto/leads:0;
-    // CPL alert
-    const avgCPL=_cedMetaCamp.length?_cedMetaCamp.filter(x=>(x.conversoes||0)>0).reduce((s,x)=>s+(parseFloat(x.gasto)||0)/(x.conversoes||1),0)/Math.max(_cedMetaCamp.filter(x=>(x.conversoes||0)>0).length,1):0;
     const cplBadge=cpl>0&&avgCPL>0&&cpl>avgCPL*1.2?' <span class="badge red" style="font-size:9px">CPL alto</span>':'';
     return `<tr>
       <td style="font-weight:500;color:var(--white)">${esc(nome)}${cplBadge}</td><td>${stBadge}</td>
-      <td style="font-weight:600">${fmtMoney(gasto)}</td><td>${impressoes.toLocaleString('pt-BR')}</td><td>${cliques.toLocaleString('pt-BR')}</td><td>${leads}</td>
+      <td style="font-weight:600">${fmtMoney(gasto)}</td><td>${impressoes.toLocaleString('pt-BR')}</td><td>${cliques.toLocaleString('pt-BR')}</td><td>${leads}</td><td>${msgs}</td>
       <td>${ctr.toFixed(2)}%</td><td>${cpl>0?fmtMoney(cpl):'—'}</td></tr>`;
   }).join('');
 }
@@ -2760,13 +2751,6 @@ function cedtecRenderMatriculas(){
     :'<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:24px">Sem dados — importe do SGE</td></tr>';
 }
 
-function cedtecRenderImport(){
-  document.getElementById('ced-import-body').innerHTML=_cedSge.length?_cedSge.slice(0,20).map(r=>`
-    <tr><td>${r.importado_em?fmtDate(r.importado_em):'—'}</td><td style="font-weight:500;color:var(--white)">${esc(r.curso||'—')}</td>
-    <td>${r.inscritos||0}</td><td>${r.pendentes||0}</td><td>${r.matriculados||0}</td><td>${esc(r.periodo||'—')}</td></tr>`).join('')
-    :'<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">Nenhuma importação</td></tr>';
-}
-
 // CRUD
 function cedtecOpenRecarga(){
   openModal('Registrar Recarga Meta','',`
@@ -2794,65 +2778,155 @@ async function cedtecDeleteRecarga(id){
   await loadCedtec(); showToast('🗑️','Recarga excluída','');
 }
 
-function cedtecRenderConexao(){
-  const c=_cedConexao;
-  const hasCamps=_cedMetaCamp.length>0;
-  const hasConfig=c&&c.ad_account_id&&c.access_token;
-  const icoEl=document.getElementById('ced-meta-status-ico');
-  const txtEl=document.getElementById('ced-meta-status-txt');
-  const subEl=document.getElementById('ced-meta-status-sub');
-  const bannerEl=document.getElementById('ced-meta-banner');
-  const accInput=document.getElementById('ced-meta-account-input');
-  const tokInput=document.getElementById('ced-meta-token-input');
-
-  if(hasConfig&&hasCamps){
-    icoEl.style.background='var(--green)';txtEl.textContent='Conectado';
-    subEl.textContent=_cedMetaCamp.length+' campanhas sincronizadas';
-    bannerEl.style.display='none';
-  } else if(hasConfig){
-    icoEl.style.background='var(--gold)';txtEl.textContent='Configurado';
-    subEl.textContent='Clique em Sincronizar para buscar campanhas';
-    bannerEl.style.display='none';
-  } else {
-    icoEl.style.background='var(--red)';txtEl.textContent='Desconectado';
-    subEl.textContent='Preencha os campos abaixo';
-    bannerEl.style.display='flex';
+// ── MARCOS (Gestor de Tráfego IA) ────────────────────────
+async function marcosInit(){
+  // Load persona
+  const{data:cfg}=await sb.from('configuracoes').select('valor').eq('chave','marcos_persona').single();
+  const personaEl=document.getElementById('marcos-persona-txt');
+  if(personaEl) personaEl.value=cfg?.valor||MARCOS_DEFAULT_PERSONA;
+  // Collapse state
+  const expanded=localStorage.getItem('marcos-persona-expanded')==='true';
+  const area=document.getElementById('marcos-persona-area');
+  if(area) area.style.display=expanded?'block':'none';
+  // Input handlers
+  const ta=document.getElementById('marcos-ta');
+  const btn=document.getElementById('marcos-send-btn');
+  if(ta){
+    ta.oninput=function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px';btn.disabled=!this.value.trim();};
+    ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();marcosSendMsg();}};
   }
-  // Populate inputs with real values
-  if(c?.ad_account_id) accInput.value=c.ad_account_id;
-  if(c?.access_token) tokInput.value=c.access_token;
-  // Toggle button
-  const toggleBtn=document.getElementById('ced-token-toggle');
-  toggleBtn.onclick=()=>{
-    tokInput.type=tokInput.type==='password'?'text':'password';
-    toggleBtn.textContent=tokInput.type==='password'?'👁':'🙈';
-  };
-  // Campaign count
-  document.getElementById('ced-meta-camp-count').textContent=hasCamps?_cedMetaCamp.length+' campanhas sincronizadas':'Nenhuma campanha sincronizada';
-  // Last sync
-  const lastSync=c?.last_sync_at||(_cedMetaCamp.length?_cedMetaCamp[0].sincronizado_em:null);
-  document.getElementById('ced-meta-last-sync').textContent=lastSync?'Última sincronização: '+fmtDate(lastSync)+' às '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Nunca sincronizado';
+  // Load history
+  const{data:hist}=await sb.from('chat_mensagens').select('*').eq('contexto','marcos').order('criado_em',{ascending:true}).limit(50);
+  if(hist&&hist.length){
+    document.getElementById('marcos-empty').style.display='none';
+    document.getElementById('marcos-chips').style.display='none';
+    hist.forEach(m=>{
+      marcosAppendMsg(m.role==='user'?'u':'a',m.conteudo,m.criado_em);
+      _marcosHistory.push({role:m.role,content:m.conteudo});
+    });
+  }
 }
 
-async function cedtecSaveConexao(){
-  const accId=document.getElementById('ced-meta-account-input').value.trim();
-  const tokenVal=document.getElementById('ced-meta-token-input').value.trim();
-  if(!accId){showToast('⚠️','Preencha o Ad Account ID','');return;}
-  if(!tokenVal){showToast('⚠️','Preencha o Access Token','');return;}
-  console.log('[CEDTEC Save] ad_account_id:', accId, 'access_token_length:', tokenVal.length, 'starts_with:', tokenVal.slice(0,8));
+function marcosAppendMsg(role,text,ts){
+  const msgs=document.getElementById('marcos-msgs');
+  const div=document.createElement('div');
+  div.className='msg '+role;
+  const t=ts?new Date(ts):new Date();
+  const now=t.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const content=role==='u'?esc(text).replace(/\n/g,'<br>'):renderMarkdown(text);
+  const vaultBtn=role==='a'?`<span style="cursor:pointer;font-size:11px;color:var(--text3);margin-left:6px" title="Salvar no vault" onclick="marcosManualSave(this.parentElement.previousElementSibling.innerText)">📓</span>`:'';
+  div.innerHTML=`<div class="bubble">${content}</div><div class="msg-t"><span style="font-size:10px;background:rgba(139,92,246,.15);color:var(--purple);padding:2px 7px;border-radius:8px;font-weight:600">🧑‍💼 Marcos</span> ${now}${vaultBtn}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function marcosSendQuick(text){
+  document.getElementById('marcos-ta').value=text;
+  document.getElementById('marcos-send-btn').disabled=false;
+  marcosSendMsg();
+}
+
+async function marcosSendMsg(){
+  if(_marcosSending) return;
+  const ta=document.getElementById('marcos-ta');
+  const text=ta.value.trim();if(!text) return;
+  document.getElementById('marcos-empty').style.display='none';
+  document.getElementById('marcos-chips').style.display='none';
+  marcosAppendMsg('u',text);
+  ta.value='';ta.style.height='auto';document.getElementById('marcos-send-btn').disabled=true;
+  _marcosHistory.push({role:'user',content:text});
+  _marcosSending=true;
+  const typing=document.createElement('div');typing.className='typing';
+  typing.innerHTML='<div class="td"></div><div class="td"></div><div class="td"></div>';
+  document.getElementById('marcos-msgs').appendChild(typing);
+
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    const token=session?.access_token||'';
+    // Build context
+    const ativas=_cedMetaCamp.filter(c=>c.status==='ACTIVE').map(c=>`${c.nome}: R$${(parseFloat(c.gasto)||0).toFixed(0)} gasto, ${c.conversoes||0} leads, CPL R$${(c.conversoes>0?(parseFloat(c.gasto)/c.conversoes):0).toFixed(0)}, CTR ${(parseFloat(c.ctr)||0).toFixed(2)}%`).join('\n');
+    const funilData=_cedSge.slice(0,5).map(s=>`${s.curso}: ${s.inscritos} insc, ${s.pendentes} pend, ${s.matriculados} matric`).join('\n');
+    const saldoInfo=`Saldo: ${fmtMoney(_cedMeta?.saldo_atual||0)}, Gasto mês: ${fmtMoney(_cedMeta?.gasto_mes||0)}`;
+    const ctx=`[CONTEXTO CEDTEC - ${new Date().toISOString().split('T')[0]}]\nCampanhas ativas:\n${ativas||'Nenhuma'}\nFunil SGE:\n${funilData||'Sem dados'}\n${saldoInfo}`;
+    const persona=document.getElementById('marcos-persona-txt')?.value||MARCOS_DEFAULT_PERSONA;
+    const res=await fetch(SURL+'/functions/v1/chat-claude',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify({messages:_marcosHistory,marcos:true,marcosPersona:persona,marcosContext:ctx})
+    });
+    const data=await res.json();
+    typing.remove();
+    const reply=data.reply||'Sem resposta.';
+    marcosAppendMsg('a',reply);
+    _marcosHistory.push({role:'assistant',content:reply});
+    // Save to DB
+    await sb.from('chat_mensagens').insert({role:'user',conteudo:text,contexto:'marcos'});
+    await sb.from('chat_mensagens').insert({role:'assistant',conteudo:reply,contexto:'marcos'});
+    // Auto vault save
+    if(data.vault_save) await marcosVaultSave(data.vault_save.path,data.vault_save.content);
+  }catch(e){typing.remove();marcosAppendMsg('a','⚠️ Erro: '+e.message);}
+  _marcosSending=false;
+}
+
+async function marcosSavePersona(){
+  const val=document.getElementById('marcos-persona-txt').value.trim();
+  await sb.from('configuracoes').upsert({chave:'marcos_persona',valor:val,updated_at:new Date().toISOString()});
+  showToast('💾','Persona salva!','');
+}
+function marcosRestorePersona(){
+  document.getElementById('marcos-persona-txt').value=MARCOS_DEFAULT_PERSONA;
+  showToast('↩️','Persona restaurada','Clique Salvar para confirmar');
+}
+
+async function marcosVaultSave(path,content){
+  try{
+    const{data:{session}}=await sb.auth.getSession();
+    // This would call a vault-save edge function or GitHub API
+    // For now, save as note in chat
+    console.log('[Marcos Vault] Would save to:', path, content?.substring(0,50));
+  }catch(e){console.error('[Marcos Vault]',e);}
+}
+
+function marcosManualSave(text){
+  const today=new Date().toISOString().split('T')[0];
+  openModal('Salvar no Vault','',`
+    <label class="m-label">Caminho</label><input class="m-input" id="m-vault-path" value="marcos/insights/${today}.md">
+    <label class="m-label">Conteúdo</label><textarea class="m-textarea" id="m-vault-content" rows="6">${esc(text)}</textarea>
+  `,[
+    {label:'Cancelar',cls:'btn-cancel',action:closeModal},
+    {label:'Salvar',cls:'btn-confirm',action:async()=>{
+      await marcosVaultSave(document.getElementById('m-vault-path').value,document.getElementById('m-vault-content').value);
+      closeModal();showToast('📓','Salvo no vault!','');
+    }}
+  ]);
+}
+
+// ── CONFIG PAGE ──────────────────────────────────────────
+async function loadConfig(){
+  const{data:conexao}=await sb.from('meta_conexoes').select('*').limit(1).single();
+  _cedConexao=conexao||null;
+  const accEl=document.getElementById('cfg-meta-account');
+  const tokEl=document.getElementById('cfg-meta-token');
+  const icoEl=document.getElementById('cfg-meta-status-ico');
+  const txtEl=document.getElementById('cfg-meta-status-txt');
+  if(_cedConexao?.ad_account_id) accEl.value=_cedConexao.ad_account_id;
+  if(_cedConexao?.access_token) tokEl.value=_cedConexao.access_token;
+  const hasCamps=_cedMetaCamp.length>0;
+  if(_cedConexao?.access_token&&hasCamps){icoEl.style.background='var(--green)';txtEl.textContent='Conectado · '+_cedMetaCamp.length+' campanhas';}
+  else if(_cedConexao?.access_token){icoEl.style.background='var(--gold)';txtEl.textContent='Configurado — sincronize';}
+  else{icoEl.style.background='var(--red)';txtEl.textContent='Não configurado';}
+  const lastSync=_cedConexao?.last_sync_at;
+  document.getElementById('cfg-meta-last-sync').textContent=lastSync?'Última sync: '+fmtDate(lastSync)+' '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+}
+
+async function cfgSaveMetaConexao(){
+  const accId=document.getElementById('cfg-meta-account').value.trim();
+  const tokenVal=document.getElementById('cfg-meta-token').value.trim();
+  if(!accId||!tokenVal){showToast('⚠️','Preencha ambos os campos','');return;}
   const row={ad_account_id:accId,access_token:tokenVal,ativo:true,status:'configurado'};
-  let err;
-  if(_cedConexao?.id){
-    const res=await sb.from('meta_conexoes').update(row).eq('id',_cedConexao.id);
-    err=res.error;
-  } else {
-    const res=await sb.from('meta_conexoes').insert(row);
-    err=res.error;
-  }
-  if(err){console.error('[CEDTEC Save] Error:',err);showToast('❌','Erro ao salvar',err.message);return;}
-  showToast('💾','Configuração salva!','Sincronizando...');
-  await loadCedtec();
-  await cedtecSyncMeta();
+  if(_cedConexao?.id) await sb.from('meta_conexoes').update(row).eq('id',_cedConexao.id);
+  else await sb.from('meta_conexoes').insert(row);
+  showToast('💾','Configuração salva!','');
+  await loadConfig();
 }
 
 window.goPage=goPage;
@@ -2925,7 +2999,12 @@ window.cedtecTab=cedtecTab;
 window.cedtecOpenRecarga=cedtecOpenRecarga;
 window.cedtecDeleteRecarga=cedtecDeleteRecarga;
 window.cedtecSyncMeta=cedtecSyncMeta;
-window.cedtecSaveConexao=cedtecSaveConexao;
+window.marcosSendMsg=marcosSendMsg;
+window.marcosSendQuick=marcosSendQuick;
+window.marcosSavePersona=marcosSavePersona;
+window.marcosRestorePersona=marcosRestorePersona;
+window.marcosManualSave=marcosManualSave;
+window.cfgSaveMetaConexao=cfgSaveMetaConexao;
 window.sitioViewAttach=sitioViewAttach;
 
 async function sitioViewAttach(id){

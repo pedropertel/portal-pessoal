@@ -71,14 +71,17 @@ async function fetchCampaignInsights(campaignId: string, token: string): Promise
   return data.data?.[0] || null;
 }
 
-function extractLeads(actions?: Array<{ action_type: string; value: string }>): number {
-  if (!actions) return 0;
-  const lead = actions.find(a =>
-    a.action_type === 'lead' ||
-    a.action_type === 'onsite_conversion.lead_grouped' ||
-    a.action_type === 'offsite_conversion.fb_pixel_lead'
-  );
-  return lead ? parseInt(lead.value) || 0 : 0;
+function extractLeadsAndMessages(actions?: Array<{ action_type: string; value: string }>): { leads: number; messages: number } {
+  if (!actions) return { leads: 0, messages: 0 };
+  let leads = 0, messages = 0;
+  for (const a of actions) {
+    if (a.action_type === 'lead' || a.action_type === 'onsite_conversion.lead_grouped' || a.action_type === 'offsite_conversion.fb_pixel_lead') {
+      leads += parseInt(a.value) || 0;
+    } else if (a.action_type === 'onsite_conversion.messaging_conversation_started_7d') {
+      messages += parseInt(a.value) || 0;
+    }
+  }
+  return { leads, messages };
 }
 
 Deno.serve(async (req: Request) => {
@@ -121,7 +124,7 @@ Deno.serve(async (req: Request) => {
       const clicks = insights ? parseInt(insights.clicks) || 0 : 0;
       const ctr = insights ? parseFloat(insights.ctr) || 0 : 0;
       const cpc = insights ? parseFloat(insights.cpc) || 0 : 0;
-      const leads = insights ? extractLeads(insights.actions) : 0;
+      const { leads, messages } = insights ? extractLeadsAndMessages(insights.actions) : { leads: 0, messages: 0 };
       const cpl = leads > 0 ? spend / leads : 0;
 
       const row = {
@@ -136,6 +139,7 @@ Deno.serve(async (req: Request) => {
         ctr: ctr,
         cpc: cpc,
         conversoes: leads,
+        messages_count: messages,
         data_inicio: insights?.date_start || null,
         data_fim: insights?.date_stop || null,
         sincronizado_em: now

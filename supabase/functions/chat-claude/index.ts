@@ -249,7 +249,8 @@ Deno.serve(async (req: Request) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const { messages, marcos, marcosPersona, marcosContext } = body;
 
     if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ reply: '⚠️ Chave ANTHROPIC_API_KEY não configurada.', agente: 'geral' }), { headers });
@@ -259,13 +260,30 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ reply: '⚠️ Nenhuma mensagem enviada.', agente: 'geral' }), { headers });
     }
 
-    // ETAPA 1: Classificar domínio
-    const lastUserMsg = [...messages].reverse().find((m: {role: string}) => m.role === 'user');
-    const lastText = lastUserMsg?.content || '';
-    const domain = await classifyDomain(lastText);
+    let domain: string;
+    let fullText: string;
 
-    // ETAPA 2: Resposta especializada
-    const { text: fullText } = await getSpecializedResponse(messages, domain);
+    if (marcos) {
+      // MARCOS MODE: skip dispatch, use persona directly
+      domain = 'marcos';
+      const di = getDateInstruction();
+      const systemPrompt = (marcosPersona || 'Você é Marcos, gestor de tráfego pago.') + '\n' + di + (marcosContext ? '\n\n' + marcosContext : '');
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: MODEL, max_tokens: 1500, system: systemPrompt, messages: messages.slice(-20) })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || 'Erro na API');
+      fullText = data.content?.[0]?.text ?? '';
+    } else {
+      // NORMAL DISPATCH
+      const lastUserMsg = [...messages].reverse().find((m: {role: string}) => m.role === 'user');
+      const lastText = lastUserMsg?.content || '';
+      domain = await classifyDomain(lastText);
+      const resp = await getSpecializedResponse(messages, domain);
+      fullText = resp.text;
+    }
     console.log(`[Dispatch] Agente: ${domain} | Resposta: ${fullText.substring(0, 100)}...`);
 
     // Parse ACTION block
@@ -288,8 +306,17 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Parse VAULT_SAVE block for Marcos
+    let vault_save = null;
+    const vaultMatch = cleanReply.match(/\[VAULT_SAVE:\s*({[\s\S]*?})\]/);
+    let finalReply = cleanReply;
+    if (vaultMatch) {
+      try { vault_save = JSON.parse(vaultMatch[1]); } catch(e) {}
+      finalReply = cleanReply.replace(/\[VAULT_SAVE:[\s\S]*?\]/g, '').trim();
+    }
+
     return new Response(
-      JSON.stringify({ reply: cleanReply || 'Mensagem processada.', action, actionData, agente: domain }),
+      JSON.stringify({ reply: finalReply || 'Mensagem processada.', action, actionData, agente: domain, vault_save }),
       { headers }
     );
 
