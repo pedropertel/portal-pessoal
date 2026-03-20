@@ -15,6 +15,15 @@ Formato OBRIGATÓRIO para criar tarefa:
 
 Seja direto e objetivo. Use português brasileiro informal.`,
 
+  cedtec: `Você gerencia o comercial do CEDTEC, escola técnica em Vila Velha-ES do Pedro Pertel.
+Cursos: Técnico em Informática, Técnico em Enfermagem, Técnico em Administração, e outros cadastrados.
+Funil SGE: inscritos → pendentes → matriculados.
+Quando o usuário colar dados do SGE, extraia: curso, inscritos, pendentes, matriculados, período.
+Retorne o bloco de ação para importar:
+[ACTION: {"type":"sge_import","dados":{"curso":"nome","inscritos":0,"pendentes":0,"matriculados":0,"periodo":"2026/1"}}]
+Quando perguntado sobre saldo Meta, custo por lead ou conversão, responda com base nos dados disponíveis.
+Seja direto e objetivo. Use português brasileiro informal.`,
+
   agenda: `Você é o assistente de agenda do Pedro Pertel (Vitória-ES).
 Gerencie eventos e compromissos. Ao criar evento, SEMPRE inclua o bloco de ação no final.
 
@@ -88,14 +97,14 @@ async function classifyDomain(lastMessage: string): Promise<string> {
       max_tokens: 20,
       messages: [{
         role: 'user',
-        content: `Classifique a mensagem abaixo em EXATAMENTE UMA palavra: tarefas | agenda | grafica | sitio | geral\n\nMensagem: ${lastMessage}`
+        content: `Classifique a mensagem abaixo em EXATAMENTE UMA palavra: tarefas | agenda | grafica | sitio | cedtec | geral\n\nMensagem: ${lastMessage}`
       }]
     })
   });
 
   const data = await res.json();
   const raw = (data.content?.[0]?.text ?? 'geral').trim().toLowerCase();
-  const valid = ['tarefas', 'agenda', 'grafica', 'sitio', 'geral'];
+  const valid = ['tarefas', 'agenda', 'grafica', 'sitio', 'cedtec', 'geral'];
   const found = valid.find(v => raw.includes(v));
   console.log(`[Dispatch] Classificação: "${raw}" → ${found || 'geral'}`);
   return found || 'geral';

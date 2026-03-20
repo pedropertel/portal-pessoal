@@ -389,6 +389,16 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
 .fv-body iframe, .fv-body embed { width: 100%; height: 100%; border: none; }
 .fv-body img { max-width: 100%; max-height: 100%; object-fit: contain; touch-action: pinch-zoom; }
 
+/* ═══ CEDTEC FUNIL ═════════════════════════════════ */
+.funil-step { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.funil-step:last-child { border-bottom: none; }
+.funil-bar-wrap { flex: 1; }
+.funil-bar { height: 28px; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 600; color: #fff; transition: width .4s ease; min-width: 40px; }
+.funil-label { min-width: 100px; font-size: 13px; font-weight: 500; color: var(--white); }
+.funil-val { min-width: 50px; text-align: right; font-size: 14px; font-weight: 700; color: var(--white); }
+.funil-pct { min-width: 50px; text-align: right; font-size: 12px; color: var(--text2); }
+.funil-curso-title { font-size: 14px; font-weight: 600; color: var(--white); padding: 14px 0 6px; border-bottom: 1px solid var(--border); margin-top: 8px; }
+
 /* ═══ SÍTIO MODULE ═════════════════════════════════ */
 .sitio-bar-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
 .sitio-bar-label { font-size: 12px; color: var(--white); font-weight: 500; min-width: 140px; display: flex; align-items: center; gap: 6px; }
@@ -665,9 +675,106 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
         <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:40px;text-align:center;color:var(--text2)"><div style="font-size:40px;margin-bottom:12px">🚧</div>Módulo em desenvolvimento — em breve!</div>
       </div>
       <div class="page" id="page-cedtec">
-        <div class="breadcrumb"><b>Home</b><span>/</span><b>CEDTEC</b></div>
-        <div class="page-title">🎓 CEDTEC</div>
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:40px;text-align:center;color:var(--text2)"><div style="font-size:40px;margin-bottom:12px">🚧</div>Módulo em desenvolvimento — em breve!</div>
+        <div class="row between" style="flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="breadcrumb"><b>Home</b><span>/</span><b>CEDTEC</b></div>
+            <div class="page-title">🎓 CEDTEC</div>
+          </div>
+          <div class="row" style="gap:8px">
+            <div class="btn-action" onclick="cedtecOpenRecarga()">💳 Registrar recarga</div>
+            <div class="btn-action primary" onclick="cedtecOpenCampanha()">+ Nova campanha</div>
+          </div>
+        </div>
+        <div class="row" style="gap:4px;flex-wrap:wrap" id="cedtec-tabs">
+          <div class="ptab on" data-tab="visao" onclick="cedtecTab('visao')">Visão geral</div>
+          <div class="ptab" data-tab="saldo" onclick="cedtecTab('saldo')">Saldo Meta</div>
+          <div class="ptab" data-tab="campanhas" onclick="cedtecTab('campanhas')">Campanhas</div>
+          <div class="ptab" data-tab="funil" onclick="cedtecTab('funil')">Funil</div>
+          <div class="ptab" data-tab="matriculas" onclick="cedtecTab('matriculas')">Matrículas</div>
+          <div class="ptab" data-tab="importar" onclick="cedtecTab('importar')">Importar</div>
+        </div>
+        <!-- ALERTA SALDO -->
+        <div id="cedtec-alerta" style="display:none;background:linear-gradient(135deg,rgba(232,83,63,.15),rgba(232,83,63,.05));border:1px solid rgba(232,83,63,.3);border-radius:var(--r);padding:14px 18px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:24px">🚨</span>
+          <div><div style="font-size:14px;font-weight:600;color:var(--red2)" id="cedtec-alerta-txt">Saldo Meta baixo!</div><div style="font-size:12px;color:var(--text2)" id="cedtec-alerta-sub">Recarregue para não pausar campanhas</div></div>
+        </div>
+        <!-- VISÃO GERAL -->
+        <div id="cedtec-visao">
+          <div class="stats-row">
+            <div class="stat-card blue"><div><div class="stat-label">Saldo Meta</div><div class="stat-value" id="ced-saldo">R$ 0</div><div class="stat-sub" id="ced-dias-rest">—</div></div><div class="stat-ico">💳</div></div>
+            <div class="stat-card teal"><div><div class="stat-label">Leads (inscritos)</div><div class="stat-value" id="ced-leads">0</div><div class="stat-sub">Total SGE</div></div><div class="stat-ico">📋</div></div>
+            <div class="stat-card green"><div><div class="stat-label">Matrículas</div><div class="stat-value" id="ced-matric">0</div><div class="stat-sub">SGE matriculados</div></div><div class="stat-ico">🎓</div></div>
+            <div class="stat-card gold"><div><div class="stat-label">Custo / matrícula</div><div class="stat-value" id="ced-cpm">—</div><div class="stat-sub">Gasto ÷ matrículas</div></div><div class="stat-ico">💰</div></div>
+          </div>
+          <div class="chart-grid" style="margin-top:12px">
+            <div class="chart-card">
+              <div class="chart-hdr"><div><div class="chart-ttl">Campanhas ativas</div></div></div>
+              <div id="ced-campanhas-lista" style="max-height:280px;overflow-y:auto"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-hdr"><div><div class="chart-ttl">Funil resumido</div></div></div>
+              <div id="ced-funil-resumo"></div>
+            </div>
+          </div>
+        </div>
+        <!-- SALDO META -->
+        <div id="cedtec-saldo" style="display:none">
+          <div class="chart-card" style="margin-bottom:12px">
+            <div style="text-align:center;padding:20px 0">
+              <div style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em">Saldo atual</div>
+              <div style="font-size:42px;font-weight:700;color:var(--white);margin:8px 0" id="ced-saldo-big">R$ 0</div>
+              <div style="width:80%;max-width:400px;margin:0 auto;height:12px;background:var(--bg);border-radius:6px;overflow:hidden"><div id="ced-saldo-bar" style="height:100%;border-radius:6px;transition:width .4s"></div></div>
+              <div style="font-size:12px;color:var(--text2);margin-top:6px" id="ced-saldo-pct"></div>
+            </div>
+          </div>
+          <div class="stats-row">
+            <div class="stat-card red"><div><div class="stat-label">Gasto hoje</div><div class="stat-value" id="ced-gasto-hoje">R$ 0</div></div><div class="stat-ico">📊</div></div>
+            <div class="stat-card gold"><div><div class="stat-label">Média diária</div><div class="stat-value" id="ced-media-dia">R$ 0</div></div><div class="stat-ico">📈</div></div>
+            <div class="stat-card purple"><div><div class="stat-label">Dias restantes</div><div class="stat-value" id="ced-dias-val">—</div></div><div class="stat-ico">⏳</div></div>
+          </div>
+          <div class="table-card" style="margin-top:12px">
+            <div class="table-hdr-row"><div style="font-size:15px;font-weight:600;color:var(--white)">Histórico de recargas</div><div class="btn-action" onclick="cedtecOpenRecarga()">+ Recarga</div></div>
+            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Data</th><th>Valor</th><th>Notas</th><th></th></tr></thead>
+            <tbody id="ced-recargas-body"><tr><td colspan="4" style="text-align:center;color:var(--text2);padding:24px">Nenhuma recarga</td></tr></tbody></table>
+          </div>
+        </div>
+        <!-- CAMPANHAS -->
+        <div id="cedtec-campanhas" style="display:none">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px" id="ced-camp-sync"></div>
+          <div class="table-card">
+            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Campanha</th><th>Status</th><th>Curso</th><th>Gasto</th><th>Leads</th><th>CTR</th><th>CPL</th><th></th></tr></thead>
+            <tbody id="ced-camp-body"><tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha</td></tr></tbody></table>
+          </div>
+        </div>
+        <!-- FUNIL -->
+        <div id="cedtec-funil" style="display:none">
+          <div id="ced-funil-full"></div>
+        </div>
+        <!-- MATRÍCULAS -->
+        <div id="cedtec-matriculas" style="display:none">
+          <div class="stats-row" id="ced-matric-stats"></div>
+          <div class="table-card" style="margin-top:12px">
+            <div class="table-hdr-row"><div style="font-size:15px;font-weight:600;color:var(--white)">Por curso</div></div>
+            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Curso</th><th>Inscritos</th><th>Pendentes</th><th>Matriculados</th><th>Conversão</th></tr></thead>
+            <tbody id="ced-matric-body"></tbody></table>
+          </div>
+        </div>
+        <!-- IMPORTAR -->
+        <div id="cedtec-importar" style="display:none">
+          <div class="chart-card" style="margin-bottom:12px">
+            <div style="padding:20px;text-align:center">
+              <div style="font-size:36px;margin-bottom:10px">📥</div>
+              <div style="font-size:16px;font-weight:600;color:var(--white);margin-bottom:6px">Importar dados do SGE</div>
+              <div style="font-size:13px;color:var(--text2);max-width:400px;margin:0 auto;line-height:1.6">Exporte o relatório do SGE e cole o conteúdo no chat com a mensagem:<br><b style="color:var(--teal)">importar SGE</b></div>
+              <div class="btn-action primary" style="display:inline-flex;margin-top:16px" onclick="goPage('chat');setTimeout(()=>{document.getElementById('chat-ta').value='Importar dados do SGE:\\n';document.getElementById('chat-ta').focus();document.getElementById('send-btn').disabled=false;},200)">💬 Abrir chat para importar</div>
+            </div>
+          </div>
+          <div class="table-card">
+            <div class="table-hdr-row"><div style="font-size:15px;font-weight:600;color:var(--white)">Últimas importações</div></div>
+            <table class="tbl-hdr" style="width:100%"><thead><tr><th>Data</th><th>Curso</th><th>Inscritos</th><th>Pendentes</th><th>Matriculados</th><th>Período</th></tr></thead>
+            <tbody id="ced-import-body"><tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">Nenhuma importação</td></tr></tbody></table>
+          </div>
+        </div>
       </div>
       <div class="page" id="page-grafica">
         <div class="breadcrumb"><b>Home</b><span>/</span><b>Gráfica</b></div>
@@ -906,6 +1013,7 @@ function goPage(name){
   if(name==='dashboard') loadDashboard();
   if(name==='agenda') loadAgenda();
   if(name==='sitio') loadSitio();
+  if(name==='cedtec') loadCedtec();
 }
 
 // ── THEME ─────────────────────────────────────────────────
@@ -1616,6 +1724,7 @@ async function sendMsg(){
     if(data.action==='tarefa') await handleActionTarefa(data.actionData);
     if(data.action==='evento') await handleActionEvento(data.actionData);
     if(data.action==='gasto')  await handleActionGasto(data.actionData);
+    if(data.action==='sge_import') await handleActionSgeImport(data.actionData);
 
   } catch(e){
     typing.remove();
@@ -1648,7 +1757,7 @@ function renderMarkdown(text){
   return html;
 }
 
-const AGENTE_LABELS={tarefas:'📋 Tarefas',agenda:'📅 Agenda',grafica:'🖨️ Gráfica',sitio:'🌱 Sítio',geral:'🤖 Geral'};
+const AGENTE_LABELS={tarefas:'📋 Tarefas',agenda:'📅 Agenda',grafica:'🖨️ Gráfica',sitio:'🌱 Sítio',cedtec:'🎓 CEDTEC',geral:'🤖 Geral'};
 
 function appendMsg(role,text,ts,agente){
   const msgs=document.getElementById('chat-msgs'),div=document.createElement('div');
@@ -1737,6 +1846,22 @@ async function handleActionGasto(d){
   if(error) { console.error('Erro ao registrar gasto:', error); showToast('❌','Erro ao registrar gasto', error.message); return; }
   console.log('Gasto registrado:', data);
   showToast('💰','Gasto registrado!', d.descricao || '');
+}
+
+async function handleActionSgeImport(d){
+  console.log('handleActionSgeImport chamado com:', d);
+  if(!d) return;
+  const {data,error}=await sb.from('cedtec_sge_importacoes').insert({
+    curso: d.curso||'Geral',
+    inscritos: parseInt(d.inscritos)||0,
+    pendentes: parseInt(d.pendentes)||0,
+    matriculados: parseInt(d.matriculados)||0,
+    periodo: d.periodo||null,
+    fonte: 'chat'
+  }).select();
+  if(error){console.error('Erro importação SGE:',error);showToast('❌','Erro na importação',error.message);return;}
+  console.log('SGE importado:', data);
+  showToast('📥','Dados SGE importados!',d.curso||'');
 }
 
 // Parse data brasileira DD/MM/AAAA ou DD/MM/AA → YYYY-MM-DD
@@ -2374,6 +2499,234 @@ async function sitioDeleteLanc(id,nome){
 
 function fmtMoney(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 
+// ── CEDTEC MODULE ────────────────────────────────────────
+let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[];
+
+function cedtecTab(tab){
+  ['visao','saldo','campanhas','funil','matriculas','importar'].forEach(t=>{
+    const el=document.getElementById('cedtec-'+t);
+    if(el) el.style.display=t===tab?'':'none';
+  });
+  document.querySelectorAll('#cedtec-tabs .ptab').forEach(p=>p.classList.toggle('on',p.dataset.tab===tab));
+}
+
+async function loadCedtec(){
+  const[{data:meta},{data:rec},{data:camp},{data:sge}]=await Promise.all([
+    sb.from('cedtec_conta_meta').select('*').limit(1).single(),
+    sb.from('cedtec_recargas').select('*').order('data',{ascending:false}).limit(50),
+    sb.from('cedtec_campanhas').select('*').order('atualizado_em',{ascending:false}).limit(50),
+    sb.from('cedtec_sge_importacoes').select('*').order('importado_em',{ascending:false}).limit(100)
+  ]);
+  _cedMeta=meta||{saldo_atual:0,limite:0,gasto_hoje:0,gasto_mes:0};
+  _cedRecargas=rec||[];
+  _cedCampanhas=camp||[];
+  _cedSge=sge||[];
+  cedtecRenderVisao();
+  cedtecRenderSaldo();
+  cedtecRenderCampanhas();
+  cedtecRenderFunil();
+  cedtecRenderMatriculas();
+  cedtecRenderImport();
+}
+
+function cedtecRenderVisao(){
+  const m=_cedMeta;
+  const totalInscritos=_cedSge.reduce((s,r)=>s+(r.inscritos||0),0);
+  const totalMatric=_cedSge.reduce((s,r)=>s+(r.matriculados||0),0);
+  const mediaDia=m.gasto_mes>0?(m.gasto_mes/new Date().getDate()):0;
+  const diasRest=mediaDia>0?Math.floor(m.saldo_atual/mediaDia):999;
+  const cpm=totalMatric>0?m.gasto_mes/totalMatric:0;
+
+  document.getElementById('ced-saldo').textContent=fmtMoney(m.saldo_atual);
+  document.getElementById('ced-dias-rest').textContent=diasRest<999?diasRest+' dias restantes':'—';
+  document.getElementById('ced-leads').textContent=totalInscritos;
+  document.getElementById('ced-matric').textContent=totalMatric;
+  document.getElementById('ced-cpm').textContent=cpm>0?fmtMoney(cpm):'—';
+
+  // Alerta
+  const alerta=document.getElementById('cedtec-alerta');
+  if(diasRest<3&&m.saldo_atual>0){
+    alerta.style.display='flex';
+    document.getElementById('cedtec-alerta-txt').textContent=`Saldo Meta acaba em ${diasRest} dia${diasRest!==1?'s':''}!`;
+    document.getElementById('cedtec-alerta-sub').textContent=`Saldo: ${fmtMoney(m.saldo_atual)} · Média diária: ${fmtMoney(mediaDia)}`;
+  } else { alerta.style.display='none'; }
+
+  // Campanhas ativas
+  const ativas=_cedCampanhas.filter(c=>c.status==='ativa');
+  document.getElementById('ced-campanhas-lista').innerHTML=ativas.length?ativas.map(c=>`
+    <div class="sitio-recent-item">
+      <span style="font-size:16px">📣</span>
+      <div style="flex:1;min-width:0"><div style="color:var(--white);font-weight:500">${esc(c.nome)}</div><div style="font-size:11px;color:var(--text2)">${c.curso||'—'} · ${c.leads_meta||0} leads</div></div>
+      <div style="font-weight:600;color:var(--white)">${fmtMoney(c.gasto||0)}</div>
+    </div>`).join(''):'<div style="padding:20px;text-align:center;color:var(--text2)">Nenhuma campanha ativa</div>';
+
+  // Funil resumido
+  const totalPend=_cedSge.reduce((s,r)=>s+(r.pendentes||0),0);
+  const maxFunil=Math.max(totalInscritos,1);
+  document.getElementById('ced-funil-resumo').innerHTML=`
+    <div style="padding:10px 0">
+      <div class="funil-step"><div class="funil-label">Inscritos</div><div class="funil-bar-wrap"><div class="funil-bar" style="width:100%;background:var(--blue)">${totalInscritos}</div></div></div>
+      <div class="funil-step"><div class="funil-label">Pendentes</div><div class="funil-bar-wrap"><div class="funil-bar" style="width:${Math.round(totalPend/maxFunil*100)}%;background:var(--gold)">${totalPend}</div></div><div class="funil-pct">${totalInscritos?Math.round(totalPend/totalInscritos*100)+'%':'—'}</div></div>
+      <div class="funil-step"><div class="funil-label">Matriculados</div><div class="funil-bar-wrap"><div class="funil-bar" style="width:${Math.round(totalMatric/maxFunil*100)}%;background:var(--teal)">${totalMatric}</div></div><div class="funil-pct">${totalInscritos?Math.round(totalMatric/totalInscritos*100)+'%':'—'}</div></div>
+    </div>`;
+}
+
+function cedtecRenderSaldo(){
+  const m=_cedMeta;
+  const mediaDia=m.gasto_mes>0?(m.gasto_mes/new Date().getDate()):0;
+  const diasRest=mediaDia>0?Math.floor(m.saldo_atual/mediaDia):0;
+  const pct=m.limite>0?Math.round(m.saldo_atual/m.limite*100):0;
+  const barColor=diasRest<3?'var(--red)':diasRest<7?'var(--gold)':'var(--teal)';
+
+  document.getElementById('ced-saldo-big').textContent=fmtMoney(m.saldo_atual);
+  document.getElementById('ced-saldo-bar').style.width=Math.min(pct,100)+'%';
+  document.getElementById('ced-saldo-bar').style.background=barColor;
+  document.getElementById('ced-saldo-pct').textContent=m.limite>0?`${fmtMoney(m.saldo_atual)} de ${fmtMoney(m.limite)} (${pct}%)`:'Limite não definido';
+  document.getElementById('ced-gasto-hoje').textContent=fmtMoney(m.gasto_hoje);
+  document.getElementById('ced-media-dia').textContent=fmtMoney(mediaDia);
+  const diasEl=document.getElementById('ced-dias-val');
+  diasEl.textContent=mediaDia>0?diasRest+' dias':'—';
+  diasEl.style.color=diasRest<3?'var(--red2)':'';
+
+  // Recargas
+  document.getElementById('ced-recargas-body').innerHTML=_cedRecargas.length?_cedRecargas.map(r=>`
+    <tr><td>${fmtDate(r.data)}</td><td style="font-weight:600">${fmtMoney(r.valor)}</td><td style="color:var(--text2)">${esc(r.notas||'—')}</td>
+    <td><span style="cursor:pointer" onclick="cedtecDeleteRecarga('${r.id}')">🗑️</span></td></tr>`).join('')
+    :'<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:24px">Nenhuma recarga registrada</td></tr>';
+}
+
+function cedtecRenderCampanhas(){
+  document.getElementById('ced-camp-sync').textContent=_cedCampanhas.length?'Última atualização: '+fmtDate(_cedCampanhas[0].atualizado_em):'Sem campanhas';
+  document.getElementById('ced-camp-body').innerHTML=_cedCampanhas.length?_cedCampanhas.map(c=>{
+    const stBadge=c.status==='ativa'?'<span class="badge green">Ativa</span>':'<span class="badge gold">Pausada</span>';
+    return `<tr>
+      <td style="font-weight:500;color:var(--white)">${esc(c.nome)}</td><td>${stBadge}</td><td>${esc(c.curso||'—')}</td>
+      <td style="font-weight:600">${fmtMoney(c.gasto)}</td><td>${c.leads_meta||0}</td><td>${(c.ctr||0).toFixed(2)}%</td><td>${fmtMoney(c.custo_por_lead||0)}</td>
+      <td><span style="cursor:pointer" onclick="cedtecEditCampanha('${c.id}')">✏️</span></td></tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:24px">Nenhuma campanha</td></tr>';
+}
+
+function cedtecRenderFunil(){
+  // Group SGE by curso (most recent per curso)
+  const cursoMap={};
+  _cedSge.forEach(r=>{
+    const key=r.curso||'Geral';
+    if(!cursoMap[key]) cursoMap[key]=r;
+  });
+  const cursos=Object.entries(cursoMap);
+  if(!cursos.length){document.getElementById('ced-funil-full').innerHTML='<div class="chart-card"><div style="padding:30px;text-align:center;color:var(--text2)">Importe dados do SGE para ver o funil</div></div>';return;}
+  let html='';
+  cursos.forEach(([curso,d])=>{
+    const max=Math.max(d.inscritos||1,1);
+    html+=`<div class="chart-card" style="margin-bottom:10px"><div class="funil-curso-title">📚 ${esc(curso)}</div><div style="padding:8px 14px">
+      <div class="funil-step"><div class="funil-label">Inscritos</div><div class="funil-bar-wrap"><div class="funil-bar" style="width:100%;background:var(--blue)">${d.inscritos||0}</div></div></div>
+      <div class="funil-step"><div class="funil-label">Pendentes</div><div class="funil-bar-wrap"><div class="funil-bar" style="width:${Math.round((d.pendentes||0)/max*100)}%;background:var(--gold)">${d.pendentes||0}</div></div><div class="funil-pct">${d.inscritos?Math.round((d.pendentes||0)/d.inscritos*100)+'%':'—'}</div></div>
+      <div class="funil-step"><div class="funil-label">Matriculados</div><div class="funil-bar-wrap"><div class="funil-bar" style="width:${Math.round((d.matriculados||0)/max*100)}%;background:var(--teal)">${d.matriculados||0}</div></div><div class="funil-pct">${d.inscritos?Math.round((d.matriculados||0)/d.inscritos*100)+'%':'—'}</div></div>
+    </div></div>`;
+  });
+  document.getElementById('ced-funil-full').innerHTML=html;
+}
+
+function cedtecRenderMatriculas(){
+  const totalMatric=_cedSge.reduce((s,r)=>s+(r.matriculados||0),0);
+  const totalInsc=_cedSge.reduce((s,r)=>s+(r.inscritos||0),0);
+  const cpm=totalMatric>0&&_cedMeta.gasto_mes>0?_cedMeta.gasto_mes/totalMatric:0;
+  document.getElementById('ced-matric-stats').innerHTML=`
+    <div class="stat-card green"><div><div class="stat-label">Matrículas total</div><div class="stat-value">${totalMatric}</div></div><div class="stat-ico">🎓</div></div>
+    <div class="stat-card gold"><div><div class="stat-label">Custo / matrícula</div><div class="stat-value">${cpm>0?fmtMoney(cpm):'—'}</div></div><div class="stat-ico">💰</div></div>
+    <div class="stat-card blue"><div><div class="stat-label">Taxa conversão</div><div class="stat-value">${totalInsc>0?Math.round(totalMatric/totalInsc*100)+'%':'—'}</div></div><div class="stat-ico">📊</div></div>
+  `;
+  // By curso
+  const cursoMap={};
+  _cedSge.forEach(r=>{const k=r.curso||'Geral';if(!cursoMap[k])cursoMap[k]={i:0,p:0,m:0};cursoMap[k].i+=(r.inscritos||0);cursoMap[k].p+=(r.pendentes||0);cursoMap[k].m+=(r.matriculados||0);});
+  const rows=Object.entries(cursoMap);
+  document.getElementById('ced-matric-body').innerHTML=rows.length?rows.map(([c,d])=>`
+    <tr><td style="font-weight:500;color:var(--white)">${esc(c)}</td><td>${d.i}</td><td>${d.p}</td><td style="font-weight:600;color:var(--teal)">${d.m}</td><td>${d.i>0?Math.round(d.m/d.i*100)+'%':'—'}</td></tr>`).join('')
+    :'<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:24px">Sem dados — importe do SGE</td></tr>';
+}
+
+function cedtecRenderImport(){
+  document.getElementById('ced-import-body').innerHTML=_cedSge.length?_cedSge.slice(0,20).map(r=>`
+    <tr><td>${r.importado_em?fmtDate(r.importado_em):'—'}</td><td style="font-weight:500;color:var(--white)">${esc(r.curso||'—')}</td>
+    <td>${r.inscritos||0}</td><td>${r.pendentes||0}</td><td>${r.matriculados||0}</td><td>${esc(r.periodo||'—')}</td></tr>`).join('')
+    :'<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">Nenhuma importação</td></tr>';
+}
+
+// CRUD
+function cedtecOpenRecarga(){
+  openModal('Registrar Recarga Meta','',`
+    <label class="m-label">Valor (R$)</label><input class="m-input" id="m-ced-rec-val" type="number" step="0.01" placeholder="0,00">
+    <label class="m-label">Data</label><input class="m-input" id="m-ced-rec-data" type="date" value="${new Date().toISOString().split('T')[0]}">
+    <label class="m-label">Notas (opcional)</label><input class="m-input" id="m-ced-rec-notas" placeholder="Ex: Pix Bradesco">
+  `,[
+    {label:'Cancelar',cls:'btn-cancel',action:closeModal},
+    {label:'Registrar',cls:'btn-confirm',action:async()=>{
+      const val=parseFloat(document.getElementById('m-ced-rec-val').value);
+      if(!val||val<=0){showToast('⚠️','Preencha o valor','');return;}
+      await sb.from('cedtec_recargas').insert({valor:val,data:document.getElementById('m-ced-rec-data').value,notas:document.getElementById('m-ced-rec-notas').value.trim()||null});
+      // Update saldo
+      await sb.from('cedtec_conta_meta').update({saldo_atual:(_cedMeta.saldo_atual||0)+val,atualizado_em:new Date().toISOString()}).eq('id',_cedMeta.id);
+      closeModal(); await loadCedtec(); showToast('💳','Recarga registrada!',fmtMoney(val));
+    }}
+  ]);
+}
+
+async function cedtecDeleteRecarga(id){
+  if(!confirm('Excluir recarga?')) return;
+  const rec=_cedRecargas.find(r=>r.id===id);
+  await sb.from('cedtec_recargas').delete().eq('id',id);
+  if(rec) await sb.from('cedtec_conta_meta').update({saldo_atual:Math.max((_cedMeta.saldo_atual||0)-(rec.valor||0),0),atualizado_em:new Date().toISOString()}).eq('id',_cedMeta.id);
+  await loadCedtec(); showToast('🗑️','Recarga excluída','');
+}
+
+function cedtecOpenCampanha(){
+  openModal('Nova Campanha','',`
+    <label class="m-label">Nome</label><input class="m-input" id="m-ced-camp-nome" placeholder="Ex: Informática - Março 2026">
+    <label class="m-label">Curso</label><input class="m-input" id="m-ced-camp-curso" placeholder="Ex: Técnico em Informática">
+    <label class="m-label">Status</label>
+    <select class="m-select" id="m-ced-camp-status"><option value="ativa">Ativa</option><option value="pausada">Pausada</option></select>
+    <label class="m-label">Gasto (R$)</label><input class="m-input" id="m-ced-camp-gasto" type="number" step="0.01" value="0">
+    <label class="m-label">Leads</label><input class="m-input" id="m-ced-camp-leads" type="number" value="0">
+  `,[
+    {label:'Cancelar',cls:'btn-cancel',action:closeModal},
+    {label:'Criar',cls:'btn-confirm',action:async()=>{
+      const nome=document.getElementById('m-ced-camp-nome').value.trim();
+      if(!nome){showToast('⚠️','Preencha o nome','');return;}
+      const gasto=parseFloat(document.getElementById('m-ced-camp-gasto').value)||0;
+      const leads=parseInt(document.getElementById('m-ced-camp-leads').value)||0;
+      await sb.from('cedtec_campanhas').insert({nome,curso:document.getElementById('m-ced-camp-curso').value.trim()||null,status:document.getElementById('m-ced-camp-status').value,gasto,leads_meta:leads,custo_por_lead:leads>0?gasto/leads:0});
+      closeModal(); await loadCedtec(); showToast('📣','Campanha criada!','');
+    }}
+  ]);
+}
+
+function cedtecEditCampanha(id){
+  const c=_cedCampanhas.find(x=>x.id===id);
+  if(!c) return;
+  openModal('Editar Campanha','',`
+    <label class="m-label">Nome</label><input class="m-input" id="m-ced-camp-nome" value="${esc(c.nome)}">
+    <label class="m-label">Curso</label><input class="m-input" id="m-ced-camp-curso" value="${esc(c.curso||'')}">
+    <label class="m-label">Status</label>
+    <select class="m-select" id="m-ced-camp-status"><option value="ativa" ${c.status==='ativa'?'selected':''}>Ativa</option><option value="pausada" ${c.status==='pausada'?'selected':''}>Pausada</option></select>
+    <label class="m-label">Gasto (R$)</label><input class="m-input" id="m-ced-camp-gasto" type="number" step="0.01" value="${c.gasto||0}">
+    <label class="m-label">Leads</label><input class="m-input" id="m-ced-camp-leads" type="number" value="${c.leads_meta||0}">
+    <label class="m-label">Impressões</label><input class="m-input" id="m-ced-camp-imp" type="number" value="${c.impressoes||0}">
+    <label class="m-label">Cliques</label><input class="m-input" id="m-ced-camp-cli" type="number" value="${c.cliques||0}">
+  `,[
+    {label:'Excluir',cls:'btn-cancel',style:'color:var(--red2)',action:async()=>{if(confirm('Excluir campanha?')){await sb.from('cedtec_campanhas').delete().eq('id',id);closeModal();await loadCedtec();showToast('🗑️','Campanha excluída','');}}},
+    {label:'Salvar',cls:'btn-confirm',action:async()=>{
+      const nome=document.getElementById('m-ced-camp-nome').value.trim();
+      if(!nome) return;
+      const gasto=parseFloat(document.getElementById('m-ced-camp-gasto').value)||0;
+      const leads=parseInt(document.getElementById('m-ced-camp-leads').value)||0;
+      const imp=parseInt(document.getElementById('m-ced-camp-imp').value)||0;
+      const cli=parseInt(document.getElementById('m-ced-camp-cli').value)||0;
+      await sb.from('cedtec_campanhas').update({nome,curso:document.getElementById('m-ced-camp-curso').value.trim()||null,status:document.getElementById('m-ced-camp-status').value,gasto,leads_meta:leads,impressoes:imp,cliques:cli,ctr:imp>0?(cli/imp*100):0,custo_por_lead:leads>0?gasto/leads:0,atualizado_em:new Date().toISOString()}).eq('id',id);
+      closeModal(); await loadCedtec(); showToast('✅','Campanha atualizada','');
+    }}
+  ]);
+}
+
 window.goPage=goPage;
 window.openNewTask=openNewTask;
 window.openEditTask=openEditTask;
@@ -2391,6 +2744,11 @@ window.sitioDeleteLanc=sitioDeleteLanc;
 window.sitioRenderLancs=sitioRenderLancs;
 window.sitioPreviewAttach=sitioPreviewAttach;
 window.closeNotif=closeNotif;
+window.cedtecTab=cedtecTab;
+window.cedtecOpenRecarga=cedtecOpenRecarga;
+window.cedtecDeleteRecarga=cedtecDeleteRecarga;
+window.cedtecOpenCampanha=cedtecOpenCampanha;
+window.cedtecEditCampanha=cedtecEditCampanha;
 window.sitioViewAttach=sitioViewAttach;
 
 async function sitioViewAttach(id){
