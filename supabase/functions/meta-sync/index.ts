@@ -1,12 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') ?? '';
-const META_AD_ACCOUNT_ID = Deno.env.get('META_AD_ACCOUNT_ID') ?? '';
+const ENV_META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') ?? '';
+const ENV_META_AD_ACCOUNT_ID = Deno.env.get('META_AD_ACCOUNT_ID') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 const GRAPH_API = 'https://graph.facebook.com/v19.0';
+
+// Resolve credentials: table first, env secrets as fallback
+async function getCredentials(sb: any): Promise<{ token: string; accountId: string }> {
+  const { data } = await sb.from('meta_conexoes').select('access_token, ad_account_id').eq('ativo', true).limit(1).single();
+  const token = data?.access_token || ENV_META_ACCESS_TOKEN;
+  const accountId = data?.ad_account_id || ENV_META_AD_ACCOUNT_ID;
+  return { token, accountId };
+}
 
 interface CampaignInsight {
   spend: string;
@@ -28,16 +36,16 @@ interface Campaign {
   lifetime_budget?: string;
 }
 
-async function fetchCampaigns(): Promise<Campaign[]> {
-  const url = `${GRAPH_API}/act_${META_AD_ACCOUNT_ID}/campaigns?fields=name,status,effective_status,daily_budget,lifetime_budget&limit=100&access_token=${META_ACCESS_TOKEN}`;
+async function fetchCampaigns(accountId: string, token: string): Promise<Campaign[]> {
+  const url = `${GRAPH_API}/act_${accountId}/campaigns?fields=name,status,effective_status,daily_budget,lifetime_budget&limit=100&access_token=${token}`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.error) throw new Error(`Meta API: ${data.error.message}`);
   return data.data || [];
 }
 
-async function fetchCampaignInsights(campaignId: string): Promise<CampaignInsight | null> {
-  const url = `${GRAPH_API}/${campaignId}/insights?fields=spend,impressions,clicks,ctr,cpc,actions&date_preset=last_30d&access_token=${META_ACCESS_TOKEN}`;
+async function fetchCampaignInsights(campaignId: string, token: string): Promise<CampaignInsight | null> {
+  const url = `${GRAPH_API}/${campaignId}/insights?fields=spend,impressions,clicks,ctr,cpc,actions&date_preset=last_30d&access_token=${token}`;
   const res = await fetch(url);
   const data = await res.json();
   if (data.error) {
@@ -71,23 +79,24 @@ Deno.serve(async (req: Request) => {
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
   try {
-    if (!META_ACCESS_TOKEN || !META_AD_ACCOUNT_ID) {
+    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { token, accountId } = await getCredentials(sb);
+
+    if (!token || !accountId) {
       return new Response(JSON.stringify({
-        error: 'META_ACCESS_TOKEN ou META_AD_ACCOUNT_ID não configurados nos Secrets do Supabase'
+        error: 'Credenciais Meta não configuradas. Preencha na aba Conexão Meta ou nos Secrets do Supabase.'
       }), { status: 400, headers });
     }
 
-    const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    console.log('[MetaSync] Fetching campaigns...');
-    const campaigns = await fetchCampaigns();
+    console.log(`[MetaSync] Using account: act_****${accountId.slice(-4)}`);
+    const campaigns = await fetchCampaigns(accountId, token);
     console.log(`[MetaSync] Found ${campaigns.length} campaigns`);
 
     const results = [];
     const now = new Date().toISOString();
 
     for (const camp of campaigns) {
-      const insights = await fetchCampaignInsights(camp.id);
+      const insights = await fetchCampaignInsights(camp.id, token);
 
       const spend = insights ? parseFloat(insights.spend) || 0 : 0;
       const impressions = insights ? parseInt(insights.impressions) || 0 : 0;
@@ -136,6 +145,13 @@ Deno.serve(async (req: Request) => {
 
       console.log(`[MetaSync] ${camp.name}: R$${spend.toFixed(2)}, ${leads} leads, CPL R$${cpl.toFixed(2)}`);
     }
+
+    // Update meta_conexoes status
+    await sb.from('meta_conexoes').update({
+      status: 'conectado',
+      last_sync_at: now,
+      campaigns_count: results.length
+    }).eq('ad_account_id', accountId);
 
     return new Response(JSON.stringify({
       synced: results.length,

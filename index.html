@@ -697,9 +697,9 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
         </div>
         <!-- CONEXÃO META -->
         <div id="cedtec-conexao">
-          <div id="ced-meta-banner" style="display:none;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(245,166,35,.05));border:1px solid rgba(245,166,35,.3);border-radius:var(--r);padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:12px">
+          <div id="ced-meta-banner" style="display:none;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(245,166,35,.05));border:1px solid rgba(245,166,35,.3);border-radius:var(--r);padding:14px 18px;margin-bottom:12px;align-items:center;gap:12px">
             <span style="font-size:24px">⚠️</span>
-            <div><div style="font-size:14px;font-weight:600;color:var(--gold2)">API Meta não configurada</div><div style="font-size:12px;color:var(--text2)">Adicione META_ACCESS_TOKEN e META_AD_ACCOUNT_ID nos Secrets do Supabase</div></div>
+            <div><div style="font-size:14px;font-weight:600;color:var(--gold2)">API Meta não configurada</div><div style="font-size:12px;color:var(--text2)">Preencha os campos abaixo e clique em Salvar</div></div>
           </div>
           <div class="chart-grid">
             <div class="chart-card">
@@ -708,37 +708,40 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
                   <div id="ced-meta-status-ico" style="width:12px;height:12px;border-radius:50%;background:var(--text3);flex-shrink:0;margin-top:2px"></div>
                   <div><div style="font-size:16px;font-weight:600;color:var(--white)" id="ced-meta-status-txt">Verificando...</div><div style="font-size:12px;color:var(--text2)" id="ced-meta-status-sub"></div></div>
                 </div>
-                <div style="margin-bottom:12px">
-                  <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Ad Account ID</div>
-                  <div style="font-size:14px;color:var(--white);font-family:monospace;background:var(--bg);padding:8px 12px;border-radius:var(--r-sm);border:1px solid var(--border)" id="ced-meta-account">—</div>
+                <label class="m-label">Ad Account ID</label>
+                <input class="m-input" id="ced-meta-account-input" placeholder="ex: 123456789 (sem act_)" style="font-family:monospace">
+                <label class="m-label">Access Token</label>
+                <div class="row" style="gap:0">
+                  <input class="m-input" id="ced-meta-token-input" type="password" placeholder="Cole seu token aqui" style="border-radius:var(--r-sm) 0 0 var(--r-sm);flex:1">
+                  <div class="btn-action" onclick="const i=document.getElementById('ced-meta-token-input');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈'" style="border-radius:0 var(--r-sm) var(--r-sm) 0;margin-bottom:14px;height:42px">👁</div>
                 </div>
-                <div style="margin-bottom:16px">
-                  <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Campanhas sincronizadas</div>
-                  <div style="font-size:14px;color:var(--white)" id="ced-meta-camp-count">0</div>
+                <div style="margin-bottom:12px;font-size:11px;color:var(--text2)" id="ced-meta-camp-count"></div>
+                <div class="row" style="gap:8px;flex-wrap:wrap">
+                  <div class="btn-action primary" onclick="cedtecSaveConexao()" style="display:inline-flex">💾 Salvar configuração</div>
+                  <div class="btn-action" onclick="cedtecSyncMeta()" id="ced-sync-btn2" style="display:inline-flex">🔄 Sincronizar agora</div>
                 </div>
-                <div class="btn-action primary" onclick="cedtecSyncMeta()" id="ced-sync-btn2" style="display:inline-flex">🔄 Sincronizar agora</div>
                 <div style="font-size:12px;color:var(--text2);margin-top:8px" id="ced-meta-last-sync"></div>
               </div>
             </div>
             <div class="chart-card">
               <div style="padding:20px">
                 <div style="font-size:14px;font-weight:600;color:var(--white);margin-bottom:12px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">📖 Instruções de configuração ▾</div>
-                <div style="display:none">
+                <div>
                   <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
                     <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">1. Criar App no Meta for Developers</div>
                     <div style="font-size:11px;color:var(--text2)">Acesse developers.facebook.com → My Apps → Create App → Business</div>
                   </div>
                   <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
                     <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">2. Gerar Access Token</div>
-                    <div style="font-size:11px;color:var(--text2)">Marketing API → Tools → Get Token → ads_read + ads_management</div>
+                    <div style="font-size:11px;color:var(--text2)">Marketing API → Tools → Get Token → selecione ads_read + ads_management</div>
                   </div>
                   <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:8px">
                     <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">3. Encontrar Ad Account ID</div>
                     <div style="font-size:11px;color:var(--text2)">Business Settings → Ad Accounts → copie o ID numérico (sem "act_")</div>
                   </div>
                   <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px">
-                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">4. Adicionar nos Secrets do Supabase</div>
-                    <div style="font-size:11px;color:var(--text2)">Dashboard Supabase → Edge Functions → Secrets:<br><code style="color:var(--teal)">META_ACCESS_TOKEN</code> e <code style="color:var(--teal)">META_AD_ACCOUNT_ID</code></div>
+                    <div style="font-size:12px;font-weight:600;color:var(--white);margin-bottom:3px">4. Cole os dados aqui</div>
+                    <div style="font-size:11px;color:var(--text2)">Preencha os campos ao lado e clique em <b style="color:var(--teal)">Salvar configuração</b>. A sincronização será automática.</div>
                   </div>
                 </div>
               </div>
@@ -2558,7 +2561,7 @@ async function sitioDeleteLanc(id,nome){
 function fmtMoney(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});}
 
 // ── CEDTEC MODULE ────────────────────────────────────────
-let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[], _cedMetaCamp=[];
+let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[], _cedMetaCamp=[], _cedConexao=null;
 let _cedTrendChart=null;
 
 function cedtecTab(tab){
@@ -2577,11 +2580,13 @@ async function loadCedtec(){
     sb.from('cedtec_sge_importacoes').select('*').order('importado_em',{ascending:false}).limit(100),
     sb.from('meta_campanhas_cache').select('*').order('sincronizado_em',{ascending:false}).limit(100)
   ]);
+  const{data:conexao}=await sb.from('meta_conexoes').select('*').eq('ativo',true).limit(1).single();
   _cedMeta=meta||{saldo_atual:0,limite:0,gasto_hoje:0,gasto_mes:0};
   _cedRecargas=rec||[];
   _cedCampanhas=camp||[];
   _cedSge=sge||[];
   _cedMetaCamp=metaCamp||[];
+  _cedConexao=conexao||null;
   cedtecRenderConexao();
   cedtecRenderVisao();
   cedtecRenderSaldo();
@@ -2790,31 +2795,56 @@ async function cedtecDeleteRecarga(id){
 }
 
 function cedtecRenderConexao(){
+  const c=_cedConexao;
   const hasCamps=_cedMetaCamp.length>0;
-  const lastSync=hasCamps?_cedMetaCamp[0].sincronizado_em:null;
+  const hasConfig=c&&c.ad_account_id&&c.access_token;
   const icoEl=document.getElementById('ced-meta-status-ico');
   const txtEl=document.getElementById('ced-meta-status-txt');
   const subEl=document.getElementById('ced-meta-status-sub');
   const bannerEl=document.getElementById('ced-meta-banner');
-  if(hasCamps){
-    icoEl.style.background='var(--green)';
-    txtEl.textContent='Conectado';
+  const accInput=document.getElementById('ced-meta-account-input');
+  const tokInput=document.getElementById('ced-meta-token-input');
+
+  if(hasConfig&&hasCamps){
+    icoEl.style.background='var(--green)';txtEl.textContent='Conectado';
     subEl.textContent=_cedMetaCamp.length+' campanhas sincronizadas';
     bannerEl.style.display='none';
+  } else if(hasConfig){
+    icoEl.style.background='var(--gold)';txtEl.textContent='Configurado';
+    subEl.textContent='Clique em Sincronizar para buscar campanhas';
+    bannerEl.style.display='none';
   } else {
-    icoEl.style.background='var(--red)';
-    txtEl.textContent='Desconectado';
-    subEl.textContent='Nenhuma campanha sincronizada — configure os Secrets';
+    icoEl.style.background='var(--red)';txtEl.textContent='Desconectado';
+    subEl.textContent='Preencha os campos abaixo';
     bannerEl.style.display='flex';
   }
-  // Account ID masked
-  const firstCamp=_cedMetaCamp[0];
-  const campId=firstCamp?.campaign_id||'';
-  document.getElementById('ced-meta-account').textContent=hasCamps?'act_****'+campId.slice(-4):'Não configurado';
+  // Populate inputs
+  if(c?.ad_account_id&&!accInput.value) accInput.value=c.ad_account_id;
+  if(c?.access_token&&!tokInput.value) tokInput.placeholder='••••••••••'+c.access_token.slice(-6);
   // Campaign count
-  document.getElementById('ced-meta-camp-count').textContent=_cedMetaCamp.length;
+  document.getElementById('ced-meta-camp-count').textContent=hasCamps?_cedMetaCamp.length+' campanhas sincronizadas':'Nenhuma campanha sincronizada';
   // Last sync
+  const lastSync=c?.last_sync_at||(_cedMetaCamp.length?_cedMetaCamp[0].sincronizado_em:null);
   document.getElementById('ced-meta-last-sync').textContent=lastSync?'Última sincronização: '+fmtDate(lastSync)+' às '+new Date(lastSync).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'Nunca sincronizado';
+}
+
+async function cedtecSaveConexao(){
+  const accId=document.getElementById('ced-meta-account-input').value.trim();
+  const token=document.getElementById('ced-meta-token-input').value.trim();
+  if(!accId){showToast('⚠️','Preencha o Ad Account ID','');return;}
+  // Token: use new value if typed, keep existing if empty
+  const tokenToSave=token||(_cedConexao?.access_token||'');
+  if(!tokenToSave){showToast('⚠️','Preencha o Access Token','');return;}
+  const row={ad_account_id:accId,access_token:tokenToSave,ativo:true,status:'configurado'};
+  if(_cedConexao?.id){
+    await sb.from('meta_conexoes').update(row).eq('id',_cedConexao.id);
+  } else {
+    await sb.from('meta_conexoes').insert(row);
+  }
+  showToast('💾','Configuração salva!','Sincronizando...');
+  await loadCedtec();
+  // Auto sync
+  await cedtecSyncMeta();
 }
 
 window.goPage=goPage;
@@ -2887,6 +2917,7 @@ window.cedtecTab=cedtecTab;
 window.cedtecOpenRecarga=cedtecOpenRecarga;
 window.cedtecDeleteRecarga=cedtecDeleteRecarga;
 window.cedtecSyncMeta=cedtecSyncMeta;
+window.cedtecSaveConexao=cedtecSaveConexao;
 window.sitioViewAttach=sitioViewAttach;
 
 async function sitioViewAttach(id){
