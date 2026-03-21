@@ -251,18 +251,20 @@ function cedtecRenderSaldo() {
   const _cedRecargas = ced.recargas || [];
   const _cedMetaCamp = ced.metaCamp || [];
 
-  // Use real Meta spend if manual gasto_mes is 0
+  // Parse all values as numbers (DB returns strings)
+  const saldoAtual = parseFloat(m.saldo_atual) || 0;
+  const gastoMesDB = parseFloat(m.gasto_mes) || 0;
+  const gastoHojeDB = parseFloat(m.gasto_hoje) || 0;
+  const limiteDB = parseFloat(m.limite) || 0;
+
   const realSpend = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0).reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
-  const gastoMes = (m.gasto_mes || 0) > 0 ? m.gasto_mes : realSpend;
+  const gastoMes = gastoMesDB > 0 ? gastoMesDB : realSpend;
   const mediaDia = gastoMes > 0 ? (gastoMes / 30) : 0;
-  const gastoHoje = (m.gasto_hoje || 0) > 0 ? m.gasto_hoje : mediaDia;
+  const gastoHoje = gastoHojeDB > 0 ? gastoHojeDB : mediaDia;
 
-  // Saldo: sum of recargas - total spend (if saldo_atual is 0)
-  const totalRecargas = _cedRecargas.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0);
-  const saldo = (m.saldo_atual || 0) > 0 ? m.saldo_atual : Math.max(0, totalRecargas - realSpend);
-
+  const saldo = saldoAtual;
   const diasRest = mediaDia > 0 ? Math.floor(saldo / mediaDia) : 0;
-  const limite = (m.limite || 0) > 0 ? m.limite : totalRecargas;
+  const limite = limiteDB > 0 ? limiteDB : (saldo + realSpend);
   const pct = limite > 0 ? Math.round(saldo / limite * 100) : 0;
   const barColor = diasRest < 3 ? 'var(--red)' : diasRest < 7 ? 'var(--gold)' : 'var(--teal)';
 
