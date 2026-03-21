@@ -118,7 +118,21 @@ Deno.serve(async (req: Request) => {
     }
 
     await sb.from('meta_conexoes').update({ status: 'conectado', last_sync_at: now, campaigns_count: results.length }).eq('ad_account_id', accountId);
-    return new Response(JSON.stringify({ synced: results.length, timestamp: now, campaigns: results }), { headers });
+
+    // Update cedtec_conta_meta with real spend data from campaigns
+    const totalGastoMes = results.reduce((s, c) => s + (c.spend || 0), 0);
+    const activeResults = results.filter(c => c.status === 'ACTIVE');
+    const gastoHoje = totalGastoMes > 0 ? Math.round(totalGastoMes / 30 * 10) / 10 : 0; // Estimativa média diária
+    const { data: contaMeta } = await sb.from('cedtec_conta_meta').select('id, saldo_atual').limit(1);
+    if (contaMeta?.[0]) {
+      await sb.from('cedtec_conta_meta').update({
+        gasto_mes: totalGastoMes,
+        gasto_hoje: gastoHoje,
+        atualizado_em: now
+      }).eq('id', contaMeta[0].id);
+    }
+
+    return new Response(JSON.stringify({ synced: results.length, timestamp: now, campaigns: results, gasto_mes: totalGastoMes }), { headers });
   } catch (err) {
     console.error('[MetaSync] Error:', err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });

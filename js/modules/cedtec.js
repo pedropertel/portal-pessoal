@@ -10,6 +10,82 @@ import { renderMarkdown } from './chat.js';
 const SURL = 'https://msbwplsknncnxwsalumd.supabase.co';
 let _cedTrendChart = null;
 let _marcosHistory = [], _marcosSending = false;
+let _currentPeriod = '30d'; // '30d', '7d', 'today', 'custom'
+
+// ── Period Filter ──
+
+export function cedtecSetPeriod(period) {
+  _currentPeriod = period;
+  // Update UI
+  document.querySelectorAll('#cedtec-period-bar .ptab').forEach(p => p.classList.toggle('on', p.dataset.period === period));
+  const customDates = document.getElementById('cedtec-custom-dates');
+  if (customDates) customDates.style.display = period === 'custom' ? 'flex' : 'none';
+  // Update label
+  const labelEl = document.getElementById('ced-period-label');
+  if (labelEl) {
+    const labels = { '30d': 'Últimos 30 dias', '7d': 'Últimos 7 dias', 'today': 'Hoje', 'custom': 'Período personalizado' };
+    labelEl.textContent = labels[period] || '';
+  }
+  if (period !== 'custom') {
+    cedtecRenderVisao();
+    cedtecRenderCampanhas();
+    cedtecRenderTrend();
+  }
+}
+
+export function cedtecApplyCustomPeriod() {
+  const from = document.getElementById('ced-date-from')?.value;
+  const to = document.getElementById('ced-date-to')?.value;
+  if (from && to) {
+    const labelEl = document.getElementById('ced-period-label');
+    if (labelEl) labelEl.textContent = `${from.split('-').reverse().join('/')} a ${to.split('-').reverse().join('/')}`;
+    cedtecRenderVisao();
+    cedtecRenderCampanhas();
+    cedtecRenderTrend();
+  }
+}
+
+function getFilteredCampaigns() {
+  const ced = getState('cedtec') || {};
+  const allCamps = ced.metaCamp || [];
+  if (_currentPeriod === '30d') return allCamps; // Meta already returns last_30d
+
+  const now = new Date();
+  let fromDate, toDate;
+
+  if (_currentPeriod === 'today') {
+    fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    toDate = now;
+  } else if (_currentPeriod === '7d') {
+    fromDate = new Date(now); fromDate.setDate(fromDate.getDate() - 7);
+    toDate = now;
+  } else if (_currentPeriod === 'custom') {
+    const f = document.getElementById('ced-date-from')?.value;
+    const t = document.getElementById('ced-date-to')?.value;
+    if (!f || !t) return allCamps;
+    fromDate = new Date(f);
+    toDate = new Date(t); toDate.setHours(23, 59, 59);
+  } else {
+    return allCamps;
+  }
+
+  // For periods shorter than 30d, we estimate proportionally
+  // since Meta API returns 30-day aggregated data
+  const totalDays = Math.max(1, Math.round((toDate - fromDate) / (1000 * 60 * 60 * 24)));
+  const factor = Math.min(1, totalDays / 30);
+
+  return allCamps.map(c => ({
+    ...c,
+    gasto: (parseFloat(c.gasto) || 0) * factor,
+    impressoes: Math.round((c.impressoes || 0) * factor),
+    cliques: Math.round((c.cliques || 0) * factor),
+    conversoes: Math.round((c.conversoes || 0) * factor),
+    messages_count: Math.round((c.messages_count || 0) * factor),
+    reach: Math.round((c.reach || 0) * factor),
+    _factor: factor,
+    _estimated: factor < 1
+  }));
+}
 const MARCOS_DEFAULT_PERSONA = `Você é Marcos, gestor de tráfego pago especialista em Meta Ads para instituições de ensino profissionalizante. Trabalha com o Pedro no CEDTEC há 2 anos. Seu estilo é direto, prático e sem enrolação. Conhece o mercado de cursos técnicos no ES. CPL alvo: R$15-25. CTR saudável: acima de 1%. Frequência máxima: 3.5. Fala como um sócio de confiança.
 
 Você recebe os dados brutos da Meta Ads API (raw JSON completo por campanha incluindo actions, adsets, targeting). Você sabe interpretar todos os action types nativamente. Nunca peça para o sistema filtrar ou classificar dados — você mesmo faz isso na análise. Quando relevante, mencione reach, frequency, e segmentação dos adsets.`;
@@ -48,14 +124,23 @@ export async function loadCedtec() {
 function cedtecRenderVisao() {
   const ced = getState('cedtec') || {};
   const m = ced.meta || {};
-  const _cedMetaCamp = ced.metaCamp || [];
   const _cedCampanhas = ced.campanhas || [];
   const _cedSge = ced.sge || [];
-  const mediaDia = m.gasto_mes > 0 ? (m.gasto_mes / new Date().getDate()) : 0;
-  const diasRest = mediaDia > 0 ? Math.floor(m.saldo_atual / mediaDia) : 999;
 
-  document.getElementById('ced-saldo').textContent = fmtMoney(m.saldo_atual);
-  document.getElementById('ced-dias-rest').textContent = diasRest < 999 ? diasRest + ' dias restantes' : '—';
+  // Use filtered campaigns for all metrics
+  const _cedMetaCamp = getFilteredCampaigns();
+
+  // Calculate real spend from Meta campaigns (not from manual table)
+  const metaWithData = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0);
+  const totalSpend = metaWithData.reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
+
+  // Saldo: use manual balance but show real spend
+  const gastoMes = totalSpend > 0 ? totalSpend : (m.gasto_mes || 0);
+  const mediaDia = gastoMes > 0 ? (gastoMes / 30) : 0;
+  const diasRest = mediaDia > 0 ? Math.floor((m.saldo_atual || 0) / mediaDia) : 999;
+
+  document.getElementById('ced-saldo').textContent = m.saldo_atual > 0 ? fmtMoney(m.saldo_atual) : fmtMoney(totalSpend) + ' gasto';
+  document.getElementById('ced-dias-rest').textContent = diasRest < 999 && m.saldo_atual > 0 ? diasRest + ' dias restantes' : totalSpend > 0 ? fmtMoney(totalSpend) + ' gasto no período' : '—';
 
   // Alerta
   const alerta = document.getElementById('cedtec-alerta');
@@ -65,9 +150,7 @@ function cedtecRenderVisao() {
     document.getElementById('cedtec-alerta-sub').textContent = `Saldo: ${fmtMoney(m.saldo_atual)} · Média diária: ${fmtMoney(mediaDia)}`;
   } else { alerta.style.display = 'none'; }
 
-  // Leads + CPL / CTR from meta cache
-  const metaWithData = _cedMetaCamp.filter(c => c.gasto > 0);
-  const totalSpend = metaWithData.reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
+  // Leads + CPL / CTR from filtered campaigns
   const totalLeadsMeta = metaWithData.reduce((s, c) => s + ((c.conversoes || 0) || (c.messages_count || 0)), 0);
   document.getElementById('ced-leads').textContent = totalLeadsMeta;
   const avgCPL = totalLeadsMeta > 0 ? totalSpend / totalLeadsMeta : 0;
@@ -144,8 +227,9 @@ function cedtecRenderSaldo() {
 
 function cedtecRenderCampanhas() {
   const ced = getState('cedtec') || {};
-  const _cedMetaCamp = ced.metaCamp || [];
   const _cedCampanhas = ced.campanhas || [];
+  // Use filtered campaigns
+  const _cedMetaCamp = getFilteredCampaigns();
   // Use meta cache if available, fallback to manual
   const camps = _cedMetaCamp.length ? _cedMetaCamp : _cedCampanhas;
   const isMeta = _cedMetaCamp.length > 0;
@@ -468,8 +552,7 @@ export async function cedtecSyncMeta() {
 }
 
 function cedtecRenderTrend() {
-  const ced = getState('cedtec') || {};
-  const _cedMetaCamp = ced.metaCamp || [];
+  const _cedMetaCamp = getFilteredCampaigns();
   const ctx = document.getElementById('ced-trend-chart');
   if (!ctx) return;
   // Use meta cache campaigns — aggregate spend and leads by campaign

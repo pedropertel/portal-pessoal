@@ -688,6 +688,20 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
           <div class="ptab" data-tab="funil" onclick="cedtecTab('funil')">Funil</div>
           <div class="ptab" data-tab="saldo" onclick="cedtecTab('saldo')">Saldo Meta</div>
         </div>
+        <!-- FILTRO PERÍODO -->
+        <div class="row" style="gap:4px;flex-wrap:wrap;margin-top:8px" id="cedtec-period-bar">
+          <div class="ptab on" data-period="30d" onclick="cedtecSetPeriod('30d')">30 dias</div>
+          <div class="ptab" data-period="7d" onclick="cedtecSetPeriod('7d')">7 dias</div>
+          <div class="ptab" data-period="today" onclick="cedtecSetPeriod('today')">Hoje</div>
+          <div class="ptab" data-period="custom" onclick="cedtecSetPeriod('custom')">Personalizado</div>
+          <div id="cedtec-custom-dates" style="display:none;gap:6px;align-items:center" class="row">
+            <input type="date" class="m-input" id="ced-date-from" style="width:130px;padding:4px 8px;font-size:11px" onchange="cedtecApplyCustomPeriod()">
+            <span style="color:var(--text2);font-size:11px">até</span>
+            <input type="date" class="m-input" id="ced-date-to" style="width:130px;padding:4px 8px;font-size:11px" onchange="cedtecApplyCustomPeriod()">
+          </div>
+          <div style="flex:1"></div>
+          <div style="font-size:11px;color:var(--text2);align-self:center" id="ced-period-label">Últimos 30 dias</div>
+        </div>
         <!-- ALERTA SALDO -->
         <div id="cedtec-alerta" style="display:none;background:linear-gradient(135deg,rgba(232,83,63,.15),rgba(232,83,63,.05));border:1px solid rgba(232,83,63,.3);border-radius:var(--r);padding:14px 18px;align-items:center;gap:12px">
           <span style="font-size:24px">🚨</span>

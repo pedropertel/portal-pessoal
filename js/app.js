@@ -11,7 +11,7 @@ import { loadDocs, goRoot, goToPathIndex, openNewFolder, closeFileViewer, trigge
 import { setupChat, loadChatHistory, clearChat, renderMarkdown } from './modules/chat.js';
 import { loadAgenda, openNewEvent, openEditEvent, showGcalModal } from './modules/agenda.js';
 import { loadSitio, sitioTab, sitioOpenNewCentro, sitioOpenEditCentro, sitioOpenNewLanc, sitioOpenEditLanc, sitioDeleteLanc, sitioRenderLancs, sitioPreviewAttach, sitioViewAttach, renderIconPicker, renderColorPicker } from './modules/sitio.js';
-import { loadCedtec, cedtecTab, cedtecOpenRecarga, cedtecDeleteRecarga, cedtecSyncMeta, marcosSendMsg, marcosSendQuick, marcosSavePersona, marcosRestorePersona, marcosManualSave, marcosShowRaw } from './modules/cedtec.js';
+import { loadCedtec, cedtecTab, cedtecOpenRecarga, cedtecDeleteRecarga, cedtecSyncMeta, cedtecSetPeriod, cedtecApplyCustomPeriod, marcosSendMsg, marcosSendQuick, marcosSavePersona, marcosRestorePersona, marcosManualSave, marcosShowRaw } from './modules/cedtec.js';
 import { loadConfig, cfgSaveMetaConexao } from './modules/config.js';
 
 // ── Register Pages with Router ──
@@ -54,6 +54,8 @@ window.cedtecTab = cedtecTab;
 window.cedtecOpenRecarga = cedtecOpenRecarga;
 window.cedtecDeleteRecarga = cedtecDeleteRecarga;
 window.cedtecSyncMeta = cedtecSyncMeta;
+window.cedtecSetPeriod = cedtecSetPeriod;
+window.cedtecApplyCustomPeriod = cedtecApplyCustomPeriod;
 window.marcosSendMsg = marcosSendMsg;
 window.marcosSendQuick = marcosSendQuick;
 window.marcosSavePersona = marcosSavePersona;
