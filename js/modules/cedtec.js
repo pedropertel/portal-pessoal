@@ -251,11 +251,11 @@ function cedtecRenderSaldo() {
   const _cedRecargas = ced.recargas || [];
   const _cedMetaCamp = ced.metaCamp || [];
 
-  // Parse all values as numbers (DB returns strings)
-  const saldoAtual = parseFloat(m.saldo_atual) || 0;
-  const gastoMesDB = parseFloat(m.gasto_mes) || 0;
-  const gastoHojeDB = parseFloat(m.gasto_hoje) || 0;
-  const limiteDB = parseFloat(m.limite) || 0;
+  // Parse all values as numbers (DB returns strings, API returns numbers)
+  const saldoAtual = typeof m.saldo_atual === 'number' ? m.saldo_atual : (parseFloat(m.saldo_atual) || 0);
+  const gastoMesDB = typeof m.gasto_mes === 'number' ? m.gasto_mes : (parseFloat(m.gasto_mes) || 0);
+  const gastoHojeDB = typeof m.gasto_hoje === 'number' ? m.gasto_hoje : (parseFloat(m.gasto_hoje) || 0);
+  const limiteDB = typeof m.limite === 'number' ? m.limite : (parseFloat(m.limite) || 0);
 
   const realSpend = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0).reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
   const gastoMes = gastoMesDB > 0 ? gastoMesDB : realSpend;
@@ -266,6 +266,8 @@ function cedtecRenderSaldo() {
   const diasRest = mediaDia > 0 ? Math.floor(saldo / mediaDia) : 0;
   const limite = limiteDB > 0 ? limiteDB : (saldo + realSpend);
   const pct = limite > 0 ? Math.round(saldo / limite * 100) : 0;
+
+  console.log('[CedtecSaldo] saldo_atual:', m.saldo_atual, '→ parsed:', saldo, 'gasto_mes:', gastoMes, 'limite:', limite);
   const barColor = diasRest < 3 ? 'var(--red)' : diasRest < 7 ? 'var(--gold)' : 'var(--teal)';
 
   document.getElementById('ced-saldo-big').textContent = fmtMoney(saldo);
