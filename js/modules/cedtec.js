@@ -11,6 +11,7 @@ const SURL = 'https://msbwplsknncnxwsalumd.supabase.co';
 let _cedTrendChart = null;
 let _marcosHistory = [], _marcosSending = false;
 let _currentPeriod = '30d'; // '30d', '7d', 'today', 'custom'
+let _metaBalance = null; // { balance, amount_spent, spend_cap } from Meta API — source of truth for saldo
 
 // ── Period Filter ──
 
@@ -96,20 +97,16 @@ export function cedtecTab(tab) {
     if (el) el.style.display = t === tab ? '' : 'none';
   });
   document.querySelectorAll('#cedtec-tabs .ptab').forEach(p => p.classList.toggle('on', p.dataset.tab === tab));
-  // Fetch real-time balance when opening saldo tab
-  if (tab === 'saldo') {
-    fetchMetaBalance().then(data => {
-      if (!data) return;
-      const ced = getState('cedtec') || {};
-      setState('cedtec', { ...ced, meta: { ...ced.meta, saldo_atual: data.balance, limite: data.spend_cap || ced.meta?.limite } });
+  // Refresh saldo from Meta when opening saldo or visao tab
+  if (tab === 'saldo' || tab === 'visao') {
+    fetchMetaBalance().then(() => {
       cedtecRenderVisao();
       cedtecRenderSaldo();
     });
   }
 }
 
-// Fetch real-time balance from Meta API
-// Returns { balance, amount_spent, spend_cap } or null on error
+// Fetch real-time balance from Meta API and cache in module variable
 async function fetchMetaBalance() {
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -122,14 +119,15 @@ async function fetchMetaBalance() {
     const data = await res.json();
     if (data.error) { console.warn('[MetaBalance]', data.error); return null; }
     console.log('[MetaBalance] Saldo:', data.balance, 'Gasto total:', data.amount_spent);
+    _metaBalance = data; // Cache — source of truth
     return data;
   } catch (e) { console.error('[MetaBalance]', e); return null; }
 }
 
 export async function loadCedtec() {
   // Fetch Meta real-time balance + DB data in parallel
-  const balancePromise = fetchMetaBalance();
-  const [{ data: meta }, { data: rec }, { data: camp }, { data: sge }, { data: metaCamp }] = await Promise.all([
+  const [, { data: meta }, { data: rec }, { data: camp }, { data: sge }, { data: metaCamp }] = await Promise.all([
+    fetchMetaBalance(), // Sets _metaBalance module variable
     sb.from('cedtec_conta_meta').select('*').limit(1).single(),
     sb.from('cedtec_recargas').select('*').order('data', { ascending: false }).limit(50),
     sb.from('cedtec_campanhas').select('*').order('atualizado_em', { ascending: false }).limit(50),
@@ -137,23 +135,14 @@ export async function loadCedtec() {
     sb.from('meta_campanhas_cache').select('*').order('sincronizado_em', { ascending: false }).limit(100)
   ]);
 
-  // Wait for Meta balance (has real saldo)
-  const balanceData = await balancePromise;
-
-  // Merge: prefer real-time balance over DB value
-  const metaObj = meta || { saldo_atual: 0, limite: 0, gasto_hoje: 0, gasto_mes: 0 };
-  if (balanceData?.balance != null) {
-    metaObj.saldo_atual = balanceData.balance;
-    if (balanceData.spend_cap) metaObj.limite = balanceData.spend_cap;
-  }
-
   setState('cedtec', {
-    meta: metaObj,
+    meta: meta || { saldo_atual: 0, limite: 0, gasto_hoje: 0, gasto_mes: 0 },
     recargas: rec || [],
     campanhas: camp || [],
     sge: sge || [],
     metaCamp: metaCamp || []
   });
+  // All renders read saldo from _metaBalance (module var), not from state
   cedtecRenderVisao();
   cedtecRenderSaldo();
   cedtecRenderCampanhas();
@@ -171,15 +160,13 @@ function cedtecRenderVisao() {
   // Use filtered campaigns for all metrics
   const _cedMetaCamp = getFilteredCampaigns();
 
-  // Calculate real spend from Meta campaigns (not from manual table)
+  // Calculate real spend from Meta campaigns
   const metaWithData = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0);
   const totalSpend = metaWithData.reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
 
-  // Saldo card: calculate real saldo from recargas - spend
-  const _cedRecargas = ced.recargas || [];
-  const totalRecargas = _cedRecargas.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0);
-  const saldo = (m.saldo_atual || 0) > 0 ? m.saldo_atual : Math.max(0, totalRecargas - totalSpend);
-  const gastoMes = totalSpend > 0 ? totalSpend : (m.gasto_mes || 0);
+  // Saldo: ALWAYS from Meta API (_metaBalance), never from DB
+  const saldo = _metaBalance?.balance ?? parseFloat(m.saldo_atual) || 0;
+  const gastoMes = totalSpend > 0 ? totalSpend : (parseFloat(m.gasto_mes) || 0);
   const mediaDia = gastoMes > 0 ? (gastoMes / 30) : 0;
   const diasRest = mediaDia > 0 ? Math.floor(saldo / mediaDia) : 999;
 
@@ -251,23 +238,19 @@ function cedtecRenderSaldo() {
   const _cedRecargas = ced.recargas || [];
   const _cedMetaCamp = ced.metaCamp || [];
 
-  // Parse all values as numbers (DB returns strings, API returns numbers)
-  const saldoAtual = typeof m.saldo_atual === 'number' ? m.saldo_atual : (parseFloat(m.saldo_atual) || 0);
-  const gastoMesDB = typeof m.gasto_mes === 'number' ? m.gasto_mes : (parseFloat(m.gasto_mes) || 0);
-  const gastoHojeDB = typeof m.gasto_hoje === 'number' ? m.gasto_hoje : (parseFloat(m.gasto_hoje) || 0);
-  const limiteDB = typeof m.limite === 'number' ? m.limite : (parseFloat(m.limite) || 0);
+  // Saldo: ALWAYS from Meta API (_metaBalance), never from DB
+  const saldo = _metaBalance?.balance ?? parseFloat(m.saldo_atual) || 0;
+  const amountSpent = _metaBalance?.amount_spent || 0;
+  const spendCap = _metaBalance?.spend_cap || 0;
 
   const realSpend = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0).reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
-  const gastoMes = gastoMesDB > 0 ? gastoMesDB : realSpend;
+  const gastoMes = realSpend > 0 ? realSpend : (parseFloat(m.gasto_mes) || 0);
   const mediaDia = gastoMes > 0 ? (gastoMes / 30) : 0;
-  const gastoHoje = gastoHojeDB > 0 ? gastoHojeDB : mediaDia;
+  const gastoHoje = mediaDia; // Estimativa: média diária
 
-  const saldo = saldoAtual;
   const diasRest = mediaDia > 0 ? Math.floor(saldo / mediaDia) : 0;
-  const limite = limiteDB > 0 ? limiteDB : (saldo + realSpend);
+  const limite = spendCap > 0 ? spendCap : (saldo + amountSpent > 0 ? saldo + amountSpent : saldo + realSpend);
   const pct = limite > 0 ? Math.round(saldo / limite * 100) : 0;
-
-  console.log('[CedtecSaldo] saldo_atual:', m.saldo_atual, '→ parsed:', saldo, 'gasto_mes:', gastoMes, 'limite:', limite);
   const barColor = diasRest < 3 ? 'var(--red)' : diasRest < 7 ? 'var(--gold)' : 'var(--teal)';
 
   document.getElementById('ced-saldo-big').textContent = fmtMoney(saldo);
