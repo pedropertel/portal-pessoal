@@ -134,13 +134,18 @@ function cedtecRenderVisao() {
   const metaWithData = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0);
   const totalSpend = metaWithData.reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
 
-  // Saldo: use manual balance but show real spend
+  // Saldo card: calculate real saldo from recargas - spend
+  const _cedRecargas = ced.recargas || [];
+  const totalRecargas = _cedRecargas.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0);
+  const saldo = (m.saldo_atual || 0) > 0 ? m.saldo_atual : Math.max(0, totalRecargas - totalSpend);
   const gastoMes = totalSpend > 0 ? totalSpend : (m.gasto_mes || 0);
   const mediaDia = gastoMes > 0 ? (gastoMes / 30) : 0;
-  const diasRest = mediaDia > 0 ? Math.floor((m.saldo_atual || 0) / mediaDia) : 999;
+  const diasRest = mediaDia > 0 ? Math.floor(saldo / mediaDia) : 999;
 
-  document.getElementById('ced-saldo').textContent = m.saldo_atual > 0 ? fmtMoney(m.saldo_atual) : fmtMoney(totalSpend) + ' gasto';
-  document.getElementById('ced-dias-rest').textContent = diasRest < 999 && m.saldo_atual > 0 ? diasRest + ' dias restantes' : totalSpend > 0 ? fmtMoney(totalSpend) + ' gasto no período' : '—';
+  document.getElementById('ced-saldo').textContent = fmtMoney(saldo);
+  document.getElementById('ced-dias-rest').textContent = diasRest < 999 && diasRest > 0
+    ? diasRest + ' dias restantes'
+    : totalSpend > 0 ? 'Gasto: ' + fmtMoney(totalSpend) : '—';
 
   // Alerta
   const alerta = document.getElementById('cedtec-alerta');
@@ -203,20 +208,32 @@ function cedtecRenderSaldo() {
   const ced = getState('cedtec') || {};
   const m = ced.meta || {};
   const _cedRecargas = ced.recargas || [];
-  const mediaDia = m.gasto_mes > 0 ? (m.gasto_mes / new Date().getDate()) : 0;
-  const diasRest = mediaDia > 0 ? Math.floor(m.saldo_atual / mediaDia) : 0;
-  const pct = m.limite > 0 ? Math.round(m.saldo_atual / m.limite * 100) : 0;
+  const _cedMetaCamp = ced.metaCamp || [];
+
+  // Use real Meta spend if manual gasto_mes is 0
+  const realSpend = _cedMetaCamp.filter(c => parseFloat(c.gasto) > 0).reduce((s, c) => s + (parseFloat(c.gasto) || 0), 0);
+  const gastoMes = (m.gasto_mes || 0) > 0 ? m.gasto_mes : realSpend;
+  const mediaDia = gastoMes > 0 ? (gastoMes / 30) : 0;
+  const gastoHoje = (m.gasto_hoje || 0) > 0 ? m.gasto_hoje : mediaDia;
+
+  // Saldo: sum of recargas - total spend (if saldo_atual is 0)
+  const totalRecargas = _cedRecargas.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0);
+  const saldo = (m.saldo_atual || 0) > 0 ? m.saldo_atual : Math.max(0, totalRecargas - realSpend);
+
+  const diasRest = mediaDia > 0 ? Math.floor(saldo / mediaDia) : 0;
+  const limite = (m.limite || 0) > 0 ? m.limite : totalRecargas;
+  const pct = limite > 0 ? Math.round(saldo / limite * 100) : 0;
   const barColor = diasRest < 3 ? 'var(--red)' : diasRest < 7 ? 'var(--gold)' : 'var(--teal)';
 
-  document.getElementById('ced-saldo-big').textContent = fmtMoney(m.saldo_atual);
+  document.getElementById('ced-saldo-big').textContent = fmtMoney(saldo);
   document.getElementById('ced-saldo-bar').style.width = Math.min(pct, 100) + '%';
   document.getElementById('ced-saldo-bar').style.background = barColor;
-  document.getElementById('ced-saldo-pct').textContent = m.limite > 0 ? `${fmtMoney(m.saldo_atual)} de ${fmtMoney(m.limite)} (${pct}%)` : 'Limite não definido';
-  document.getElementById('ced-gasto-hoje').textContent = fmtMoney(m.gasto_hoje);
+  document.getElementById('ced-saldo-pct').textContent = limite > 0 ? `${fmtMoney(saldo)} de ${fmtMoney(limite)} (${pct}%)` : realSpend > 0 ? `Gasto total: ${fmtMoney(realSpend)}` : 'Registre recargas para acompanhar';
+  document.getElementById('ced-gasto-hoje').textContent = fmtMoney(gastoHoje);
   document.getElementById('ced-media-dia').textContent = fmtMoney(mediaDia);
   const diasEl = document.getElementById('ced-dias-val');
-  diasEl.textContent = mediaDia > 0 ? diasRest + ' dias' : '—';
-  diasEl.style.color = diasRest < 3 ? 'var(--red2)' : '';
+  diasEl.textContent = mediaDia > 0 && saldo > 0 ? diasRest + ' dias' : mediaDia > 0 ? fmtMoney(gastoMes) + '/mês' : '—';
+  diasEl.style.color = diasRest < 3 && saldo > 0 ? 'var(--red2)' : '';
 
   // Recargas
   document.getElementById('ced-recargas-body').innerHTML = _cedRecargas.length ? _cedRecargas.map(r => `
