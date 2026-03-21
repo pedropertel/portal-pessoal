@@ -97,10 +97,19 @@ export function cedtecTab(tab) {
   });
   document.querySelectorAll('#cedtec-tabs .ptab').forEach(p => p.classList.toggle('on', p.dataset.tab === tab));
   // Fetch real-time balance when opening saldo tab
-  if (tab === 'saldo') fetchMetaBalance();
+  if (tab === 'saldo') {
+    fetchMetaBalance().then(data => {
+      if (!data) return;
+      const ced = getState('cedtec') || {};
+      setState('cedtec', { ...ced, meta: { ...ced.meta, saldo_atual: data.balance, limite: data.spend_cap || ced.meta?.limite } });
+      cedtecRenderVisao();
+      cedtecRenderSaldo();
+    });
+  }
 }
 
 // Fetch real-time balance from Meta API
+// Returns { balance, amount_spent, spend_cap } or null on error
 async function fetchMetaBalance() {
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -111,21 +120,15 @@ async function fetchMetaBalance() {
       body: '{}'
     });
     const data = await res.json();
-    if (data.error) { console.warn('[MetaBalance]', data.error); return; }
-    // Update store with real balance
-    const ced = getState('cedtec') || {};
-    const meta = ced.meta || {};
-    setState('cedtec', {
-      ...ced,
-      meta: { ...meta, saldo_atual: data.balance, limite: data.spend_cap || meta.limite }
-    });
-    // Re-render
-    cedtecRenderVisao();
-    cedtecRenderSaldo();
-  } catch (e) { console.error('[MetaBalance]', e); }
+    if (data.error) { console.warn('[MetaBalance]', data.error); return null; }
+    console.log('[MetaBalance] Saldo:', data.balance, 'Gasto total:', data.amount_spent);
+    return data;
+  } catch (e) { console.error('[MetaBalance]', e); return null; }
 }
 
 export async function loadCedtec() {
+  // Fetch Meta real-time balance + DB data in parallel
+  const balancePromise = fetchMetaBalance();
   const [{ data: meta }, { data: rec }, { data: camp }, { data: sge }, { data: metaCamp }] = await Promise.all([
     sb.from('cedtec_conta_meta').select('*').limit(1).single(),
     sb.from('cedtec_recargas').select('*').order('data', { ascending: false }).limit(50),
@@ -133,8 +136,19 @@ export async function loadCedtec() {
     sb.from('cedtec_sge_importacoes').select('*').order('importado_em', { ascending: false }).limit(100),
     sb.from('meta_campanhas_cache').select('*').order('sincronizado_em', { ascending: false }).limit(100)
   ]);
+
+  // Wait for Meta balance (has real saldo)
+  const balanceData = await balancePromise;
+
+  // Merge: prefer real-time balance over DB value
+  const metaObj = meta || { saldo_atual: 0, limite: 0, gasto_hoje: 0, gasto_mes: 0 };
+  if (balanceData?.balance != null) {
+    metaObj.saldo_atual = balanceData.balance;
+    if (balanceData.spend_cap) metaObj.limite = balanceData.spend_cap;
+  }
+
   setState('cedtec', {
-    meta: meta || { saldo_atual: 0, limite: 0, gasto_hoje: 0, gasto_mes: 0 },
+    meta: metaObj,
     recargas: rec || [],
     campanhas: camp || [],
     sge: sge || [],
@@ -146,8 +160,6 @@ export async function loadCedtec() {
   cedtecRenderFunil();
   cedtecRenderMatriculas();
   marcosInit();
-  // Fetch real-time balance from Meta (non-blocking)
-  fetchMetaBalance();
 }
 
 function cedtecRenderVisao() {
