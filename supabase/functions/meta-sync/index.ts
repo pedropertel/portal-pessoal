@@ -6,195 +6,121 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const ENV_META_ACCESS_TOKEN = Deno.env.get('META_ACCESS_TOKEN') ?? '';
 const ENV_META_AD_ACCOUNT_ID = Deno.env.get('META_AD_ACCOUNT_ID') ?? '';
-
 const GRAPH_API = 'https://graph.facebook.com/v19.0';
 
-function getSb() {
-  // Prefer service role, fallback to anon
-  const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
-  console.log('[MetaSync] Supabase URL:', SUPABASE_URL ? 'set' : 'MISSING');
-  console.log('[MetaSync] Using key:', SUPABASE_SERVICE_ROLE_KEY ? 'service_role' : SUPABASE_ANON_KEY ? 'anon' : 'NONE');
-  return createClient(SUPABASE_URL, key);
-}
+function getSb() { return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY); }
 
-async function getCredentials(sb: any): Promise<{ token: string; accountId: string }> {
+async function getCredentials(sb: any) {
   try {
-    const { data, error } = await sb.from('meta_conexoes').select('access_token, ad_account_id').limit(1);
-    console.log('[MetaSync] DB query result:', JSON.stringify(data), 'error:', JSON.stringify(error));
+    const { data } = await sb.from('meta_conexoes').select('access_token, ad_account_id').limit(1);
     const row = data?.[0];
-    const token = row?.access_token || ENV_META_ACCESS_TOKEN;
-    const accountId = row?.ad_account_id || ENV_META_AD_ACCOUNT_ID;
-    console.log('[MetaSync] Resolved:', accountId ? `act_****${accountId.slice(-4)}` : 'NO_ACCOUNT', token ? `token=${token.slice(0,8)}...` : 'NO_TOKEN');
-    return { token, accountId };
-  } catch (e) {
-    console.error('[MetaSync] getCredentials error:', e);
-    return { token: ENV_META_ACCESS_TOKEN, accountId: ENV_META_AD_ACCOUNT_ID };
-  }
+    return { token: row?.access_token || ENV_META_ACCESS_TOKEN, accountId: row?.ad_account_id || ENV_META_AD_ACCOUNT_ID };
+  } catch { return { token: ENV_META_ACCESS_TOKEN, accountId: ENV_META_AD_ACCOUNT_ID }; }
 }
 
-interface CampaignInsight {
-  spend: string;
-  impressions: string;
-  clicks: string;
-  ctr: string;
-  cpc: string;
-  reach?: string;
-  frequency?: string;
-  actions?: Array<{ action_type: string; value: string }>;
-  date_start: string;
-  date_stop: string;
-}
+const CAMPAIGN_FIELDS = 'name,status,effective_status,objective,daily_budget,lifetime_budget,budget_remaining,start_time,stop_time,created_time';
+const INSIGHT_FIELDS = 'spend,impressions,reach,frequency,clicks,unique_clicks,ctr,cpc,cpm,cpp,actions,action_values,cost_per_action_type,video_play_actions,video_avg_time_watched_actions,video_p25_watched_actions,video_p50_watched_actions,video_p75_watched_actions,video_p95_watched_actions,quality_ranking,engagement_rate_ranking,conversion_rate_ranking,outbound_clicks,outbound_clicks_ctr,website_ctr,unique_outbound_clicks';
 
-interface Campaign {
-  id: string;
-  name: string;
-  status: string;
-  effective_status: string;
-  daily_budget?: string;
-  lifetime_budget?: string;
-}
-
-async function fetchCampaigns(accountId: string, token: string): Promise<Campaign[]> {
-  const url = `${GRAPH_API}/act_${accountId}/campaigns?fields=name,status,effective_status,daily_budget,lifetime_budget&limit=100&access_token=${token}`;
-  const res = await fetch(url);
+async function fetchMeta(url: string, token: string) {
+  const res = await fetch(`${url}&access_token=${token}`);
   const data = await res.json();
   if (data.error) throw new Error(`Meta API: ${data.error.message}`);
-  return data.data || [];
-}
-
-async function fetchCampaignInsights(campaignId: string, token: string): Promise<CampaignInsight | null> {
-  const url = `${GRAPH_API}/${campaignId}/insights?fields=spend,impressions,clicks,ctr,cpc,actions,action_values,reach,frequency&date_preset=last_30d&access_token=${token}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (data.error) {
-    console.error(`[MetaSync] Insights error for ${campaignId}:`, data.error.message);
-    return null;
-  }
-  return data.data?.[0] || null;
-}
-
-const LEAD_ACTIONS = new Set([
-  'lead',
-  'onsite_conversion.lead_grouped',
-  'offsite_conversion.fb_pixel_lead',
-  'onsite_conversion.flow_complete'
-]);
-const MSG_ACTIONS = new Set([
-  'onsite_conversion.messaging_conversation_started_7d',
-  'onsite_conversion.messaging_first_reply',
-  'onsite_conversion.post_save',
-  'omni_initiated_checkout'
-]);
-
-function extractLeadsAndMessages(actions?: Array<{ action_type: string; value: string }>): { leads: number; messages: number } {
-  if (!actions) return { leads: 0, messages: 0 };
-  let leads = 0, messages = 0;
-  for (const a of actions) {
-    const v = parseInt(a.value) || 0;
-    if (LEAD_ACTIONS.has(a.action_type)) leads += v;
-    else if (MSG_ACTIONS.has(a.action_type)) messages += v;
-  }
-  console.log('[MetaSync] Actions parsed:', actions.map(a => `${a.action_type}=${a.value}`).join(', '), `→ leads=${leads}, msgs=${messages}`);
-  return { leads, messages };
+  return data;
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'authorization, content-type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      }
-    });
-  }
-
+  if (req.method === 'OPTIONS') return new Response(null, { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' } });
   const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
   try {
-    console.log('[MetaSync] === START ===');
     const sb = getSb();
     const { token, accountId } = await getCredentials(sb);
+    if (!token || !accountId) return new Response(JSON.stringify({ error: 'Credenciais Meta não configuradas.' }), { status: 400, headers });
 
-    if (!token || !accountId) {
-      console.log('[MetaSync] FAIL: missing credentials');
-      return new Response(JSON.stringify({
-        error: 'Credenciais Meta não configuradas. Preencha na aba Conexão Meta ou nos Secrets do Supabase.'
-      }), { status: 400, headers });
-    }
-
-    console.log(`[MetaSync] Fetching campaigns for act_****${accountId.slice(-4)}...`);
-    const campaigns = await fetchCampaigns(accountId, token);
-    console.log(`[MetaSync] Found ${campaigns.length} campaigns`);
+    // Fetch campaigns
+    const campData = await fetchMeta(`${GRAPH_API}/act_${accountId}/campaigns?fields=${CAMPAIGN_FIELDS}&limit=100`, token);
+    const campaigns = campData.data || [];
+    console.log(`[MetaSync] ${campaigns.length} campaigns`);
 
     const results = [];
     const now = new Date().toISOString();
 
     for (const camp of campaigns) {
-      const insights = await fetchCampaignInsights(camp.id, token);
+      // Insights
+      let insights = null;
+      try {
+        const insData = await fetchMeta(`${GRAPH_API}/${camp.id}/insights?fields=${INSIGHT_FIELDS}&date_preset=last_30d`, token);
+        insights = insData.data?.[0] || null;
+      } catch (e) { console.error(`[MetaSync] Insights error ${camp.name}:`, e.message); }
+
+      // Adsets
+      let adsets = [];
+      try {
+        const adsetData = await fetchMeta(`${GRAPH_API}/${camp.id}/adsets?fields=name,status,targeting,daily_budget,optimization_goal,bid_strategy&limit=50`, token);
+        adsets = adsetData.data || [];
+      } catch (e) { console.error(`[MetaSync] Adsets error ${camp.name}:`, e.message); }
+
+      // Ads/Criativos
+      let ads = [];
+      try {
+        const adsData = await fetchMeta(`${GRAPH_API}/${camp.id}/ads?fields=name,creative{title,body,image_url,video_id,call_to_action_type}&limit=50`, token);
+        ads = adsData.data || [];
+      } catch (e) { console.error(`[MetaSync] Ads error ${camp.name}:`, e.message); }
+
+      // Extract key metrics from actions (no classification — raw preserved in raw_data)
+      const actions = insights?.actions || [];
+      let leads = 0, messages = 0;
+      for (const a of actions) {
+        const v = parseInt(a.value) || 0;
+        if (['lead', 'onsite_conversion.lead_grouped', 'offsite_conversion.fb_pixel_lead', 'onsite_conversion.flow_complete'].includes(a.action_type)) leads += v;
+        if (['onsite_conversion.messaging_conversation_started_7d', 'onsite_conversion.messaging_first_reply', 'onsite_conversion.post_save', 'omni_initiated_checkout'].includes(a.action_type)) messages += v;
+      }
 
       const spend = insights ? parseFloat(insights.spend) || 0 : 0;
       const impressions = insights ? parseInt(insights.impressions) || 0 : 0;
       const clicks = insights ? parseInt(insights.clicks) || 0 : 0;
       const ctr = insights ? parseFloat(insights.ctr) || 0 : 0;
       const cpc = insights ? parseFloat(insights.cpc) || 0 : 0;
-      const { leads, messages } = insights ? extractLeadsAndMessages(insights.actions) : { leads: 0, messages: 0 };
-      const cpl = leads > 0 ? spend / leads : 0;
+      const reach = insights ? parseInt(insights.reach) || 0 : 0;
+      const frequency = insights ? parseFloat(insights.frequency) || 0 : 0;
+
+      // Build raw_data with EVERYTHING
+      const raw_data = {
+        campaign: camp,
+        insights: insights,
+        adsets: adsets,
+        ads: ads
+      };
 
       const row = {
         campaign_id: camp.id,
         nome: camp.name,
         status: camp.effective_status || camp.status,
+        objetivo: camp.objective || null,
         budget_diario: camp.daily_budget ? parseFloat(camp.daily_budget) / 100 : null,
         budget_total: camp.lifetime_budget ? parseFloat(camp.lifetime_budget) / 100 : null,
         gasto: spend,
         impressoes: impressions,
         cliques: clicks,
-        ctr: ctr,
-        cpc: cpc,
+        ctr, cpc,
+        reach, frequency,
         conversoes: leads,
         messages_count: messages,
-        data_inicio: insights?.date_start || null,
-        data_fim: insights?.date_stop || null,
-        sincronizado_em: now
+        data_inicio: insights?.date_start || camp.start_time?.split('T')[0] || null,
+        data_fim: insights?.date_stop || camp.stop_time?.split('T')[0] || null,
+        sincronizado_em: now,
+        raw_data
       };
 
-      const { error } = await sb
-        .from('meta_campanhas_cache')
-        .upsert(row, { onConflict: 'campaign_id' });
-
-      if (error) {
-        console.error(`[MetaSync] Upsert error for ${camp.name}:`, error.message);
-      }
-
-      results.push({
-        name: camp.name,
-        status: camp.effective_status,
-        spend, leads, cpl: cpl.toFixed(2), ctr: ctr.toFixed(2)
-      });
-
-      console.log(`[MetaSync] ${camp.name}: R$${spend.toFixed(2)}, ${leads} leads`);
+      await sb.from('meta_campanhas_cache').upsert(row, { onConflict: 'campaign_id' });
+      results.push({ name: camp.name, status: camp.effective_status, spend, leads, messages, reach, frequency, adsets: adsets.length, ads: ads.length });
+      console.log(`[MetaSync] ${camp.name}: R$${spend.toFixed(0)} ${leads}L ${messages}M ${reach}R ${adsets.length}AS ${ads.length}AD`);
     }
 
-    // Update connection status
-    await sb.from('meta_conexoes').update({
-      status: 'conectado',
-      last_sync_at: now,
-      campaigns_count: results.length
-    }).eq('ad_account_id', accountId);
-
-    console.log(`[MetaSync] === DONE: ${results.length} campaigns synced ===`);
-
-    return new Response(JSON.stringify({
-      synced: results.length,
-      timestamp: now,
-      campaigns: results
-    }), { headers });
-
+    await sb.from('meta_conexoes').update({ status: 'conectado', last_sync_at: now, campaigns_count: results.length }).eq('ad_account_id', accountId);
+    return new Response(JSON.stringify({ synced: results.length, timestamp: now, campaigns: results }), { headers });
   } catch (err) {
-    console.error('[MetaSync] FATAL:', err.message, err.stack);
-    return new Response(JSON.stringify({
-      error: err.message
-    }), { status: 500, headers });
+    console.error('[MetaSync] Error:', err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
 });

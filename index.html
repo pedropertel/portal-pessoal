@@ -750,15 +750,25 @@ html.light #auth { background: radial-gradient(ellipse at 20% 50%, rgba(0,201,16
               </div>
             </div>
             <div class="chat-chips" id="marcos-chips" style="display:flex">
-              <div class="chip" onclick="marcosSendQuick('Faz um resumo da semana das campanhas')">📊 Resumo da semana</div>
-              <div class="chip" onclick="marcosSendQuick('O que otimizar agora nas campanhas?')">💡 O que otimizar?</div>
-              <div class="chip" onclick="marcosSendQuick('Simula uma meta de 50 matrículas com CPL de R$20')">📈 Simular meta</div>
+              <div class="chip" onclick="marcosSendQuick('Faz um resumo da semana')">📊 Resumo</div>
+              <div class="chip" onclick="marcosSendQuick('O que otimizar agora?')">💡 Otimizar</div>
+              <div class="chip" onclick="marcosSendQuick('Simula uma meta')">📈 Simular</div>
             </div>
             <div class="chat-bar">
               <div class="chat-input-wrap">
                 <textarea class="chat-ta" id="marcos-ta" placeholder="Fale com o Marcos..." rows="1"></textarea>
               </div>
               <button class="send-btn" id="marcos-send-btn" disabled onclick="marcosSendMsg()">➤</button>
+            </div>
+          </div>
+          <!-- Raw data section -->
+          <div class="chart-card" style="margin-top:8px">
+            <div style="padding:10px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text2);display:flex;align-items:center;justify-content:space-between" onclick="const el=document.getElementById('marcos-raw-area');el.style.display=el.style.display==='none'?'block':'none'">
+              <span>📡 Dados da Meta Ads (brutos)</span>
+              <div class="row" style="gap:6px"><div class="btn-action" onclick="event.stopPropagation();cedtecSyncMeta()" style="font-size:11px">🔄 Sincronizar</div><span style="font-size:10px;color:var(--text3)" id="marcos-raw-sync"></span></div>
+            </div>
+            <div id="marcos-raw-area" style="display:none;padding:0 16px 12px;max-height:400px;overflow-y:auto">
+              <div id="marcos-raw-table"></div>
             </div>
           </div>
         </div>
@@ -2556,7 +2566,9 @@ function fmtMoney(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFr
 let _cedMeta=null, _cedRecargas=[], _cedCampanhas=[], _cedSge=[], _cedMetaCamp=[], _cedConexao=null;
 let _cedTrendChart=null;
 let _marcosHistory=[], _marcosSending=false;
-const MARCOS_DEFAULT_PERSONA=`Você é Marcos, gestor de tráfego pago especialista em Meta Ads para instituições de ensino profissionalizante. Trabalha com o Pedro no CEDTEC há 2 anos. Seu estilo é direto, prático e sem enrolação. Conhece o mercado de cursos técnicos no ES. CPL alvo: R$15-25. CTR saudável: acima de 1%. Frequência máxima: 3.5. Fala como um sócio de confiança.`;
+const MARCOS_DEFAULT_PERSONA=`Você é Marcos, gestor de tráfego pago especialista em Meta Ads para instituições de ensino profissionalizante. Trabalha com o Pedro no CEDTEC há 2 anos. Seu estilo é direto, prático e sem enrolação. Conhece o mercado de cursos técnicos no ES. CPL alvo: R$15-25. CTR saudável: acima de 1%. Frequência máxima: 3.5. Fala como um sócio de confiança.
+
+Você recebe os dados brutos da Meta Ads API (raw JSON completo por campanha incluindo actions, adsets, targeting). Você sabe interpretar todos os action types nativamente. Nunca peça para o sistema filtrar ou classificar dados — você mesmo faz isso na análise. Quando relevante, mencione reach, frequency, e segmentação dos adsets.`;
 
 function cedtecTab(tab){
   ['visao','campanhas','marcos','funil','saldo'].forEach(t=>{
@@ -2808,6 +2820,61 @@ async function marcosInit(){
       _marcosHistory.push({role:m.role,content:m.conteudo});
     });
   }
+  // Raw data table
+  marcosRenderRawData();
+  // Dynamic suggestions
+  marcosLoadSuggestions();
+}
+
+function marcosRenderRawData(){
+  const el=document.getElementById('marcos-raw-table');
+  if(!el) return;
+  const syncEl=document.getElementById('marcos-raw-sync');
+  if(_cedMetaCamp.length&&_cedMetaCamp[0].sincronizado_em){
+    syncEl.textContent=fmtDate(_cedMetaCamp[0].sincronizado_em)+' '+new Date(_cedMetaCamp[0].sincronizado_em).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+  if(!_cedMetaCamp.length){el.innerHTML='<div style="padding:12px;color:var(--text2)">Nenhum dado — sincronize primeiro</div>';return;}
+  el.innerHTML=`<table class="tbl-hdr" style="width:100%;font-size:12px"><thead><tr><th>Campanha</th><th>Status</th><th>Objetivo</th><th>Gasto</th><th>Reach</th><th>Freq</th><th>Leads</th><th>Msgs</th><th>Raw</th></tr></thead><tbody>`+
+    _cedMetaCamp.map(c=>{
+      const hasRaw=!!c.raw_data;
+      return `<tr><td style="color:var(--white);font-weight:500;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.nome)}</td>
+      <td>${c.status}</td><td style="font-size:10px">${c.objetivo||'—'}</td>
+      <td>${fmtMoney(parseFloat(c.gasto)||0)}</td><td>${(c.reach||0).toLocaleString('pt-BR')}</td><td>${(parseFloat(c.frequency)||0).toFixed(1)}</td>
+      <td>${c.conversoes||0}</td><td>${c.messages_count||0}</td>
+      <td>${hasRaw?`<span style="cursor:pointer" onclick="marcosShowRaw('${c.campaign_id}')">📋</span>`:'—'}</td></tr>`;
+    }).join('')+'</tbody></table>';
+}
+
+function marcosShowRaw(campId){
+  const c=_cedMetaCamp.find(x=>x.campaign_id===campId);
+  if(!c?.raw_data) return;
+  openModal('Raw JSON — '+esc(c.nome),'',`<pre style="background:var(--bg);padding:12px;border-radius:var(--r-sm);overflow:auto;max-height:60vh;font-size:11px;color:var(--text);white-space:pre-wrap">${esc(JSON.stringify(c.raw_data,null,2))}</pre>`,[
+    {label:'Copiar',cls:'btn-action',action:()=>{navigator.clipboard.writeText(JSON.stringify(c.raw_data,null,2));showToast('📋','JSON copiado','');}},
+    {label:'Fechar',cls:'btn-confirm',action:closeModal}
+  ]);
+}
+
+async function marcosLoadSuggestions(){
+  if(!_cedMetaCamp.length) return;
+  try{
+    const ativas=_cedMetaCamp.filter(c=>c.status==='ACTIVE');
+    if(!ativas.length) return;
+    const resumo=ativas.map(c=>`${c.nome}: R$${(parseFloat(c.gasto)||0).toFixed(0)}, ${c.conversoes||0}L ${c.messages_count||0}M`).join('; ');
+    const{data:{session}}=await sb.auth.getSession();
+    const res=await fetch(SURL+'/functions/v1/chat-claude',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(session?.access_token||'')},
+      body:JSON.stringify({messages:[{role:'user',content:`Dados atuais: ${resumo}. Sugira exatamente 3 perguntas curtas (máx 6 palavras cada) que o Pedro deveria fazer agora. Retorne APENAS um JSON array: ["pergunta1","pergunta2","pergunta3"]`}],marcos:true,marcosPersona:'Retorne apenas JSON array com 3 strings curtas.',marcosContext:''})
+    });
+    const data=await res.json();
+    const match=data.reply?.match(/\[[\s\S]*?\]/);
+    if(match){
+      const suggestions=JSON.parse(match[0]);
+      const chipsEl=document.getElementById('marcos-chips');
+      if(chipsEl&&suggestions.length){
+        chipsEl.innerHTML=suggestions.map(s=>`<div class="chip" onclick="marcosSendQuick('${esc(s)}')">${esc(s)}</div>`).join('');
+      }
+    }
+  }catch(e){console.log('[Marcos] Suggestions error:',e);}
 }
 
 function marcosAppendMsg(role,text,ts){
@@ -2847,10 +2914,14 @@ async function marcosSendMsg(){
     const{data:{session}}=await sb.auth.getSession();
     const token=session?.access_token||'';
     // Build context
-    const ativas=_cedMetaCamp.filter(c=>c.status==='ACTIVE').map(c=>{const g=parseFloat(c.gasto)||0;const l=c.conversoes||0;const m=c.messages_count||0;const proxy=l||m;const cpl=proxy>0?g/proxy:0;return `${c.nome}: R$${g.toFixed(0)} gasto, leads_reais: ${l}, mensagens_iniciadas: ${m}, CPL R$${cpl.toFixed(0)}, CTR ${(parseFloat(c.ctr)||0).toFixed(2)}%`;}).join('\n');
-    const funilData=_cedSge.slice(0,5).map(s=>`${s.curso}: ${s.inscritos} insc, ${s.pendentes} pend, ${s.matriculados} matric`).join('\n');
-    const saldoInfo=`Saldo: ${fmtMoney(_cedMeta?.saldo_atual||0)}, Gasto mês: ${fmtMoney(_cedMeta?.gasto_mes||0)}`;
-    const ctx=`[CONTEXTO CEDTEC - ${new Date().toISOString().split('T')[0]}]\nCampanhas ativas:\n${ativas||'Nenhuma'}\nFunil SGE:\n${funilData||'Sem dados'}\n${saldoInfo}`;
+    // Build context with raw data
+    const ativasRaw=_cedMetaCamp.filter(c=>c.status==='ACTIVE').map(c=>{
+      const raw=c.raw_data||{};
+      return {nome:c.nome,gasto:c.gasto,leads:c.conversoes,messages:c.messages_count,impressoes:c.impressoes,cliques:c.cliques,ctr:c.ctr,cpc:c.cpc,reach:c.reach,frequency:c.frequency,objetivo:c.objetivo,actions:raw.insights?.actions||[],adsets:(raw.adsets||[]).map(a=>({nome:a.name,targeting:a.targeting,optimization:a.optimization_goal})),ads_count:(raw.ads||[]).length};
+    });
+    const funilData=_cedSge.slice(0,5).map(s=>({curso:s.curso,inscritos:s.inscritos,pendentes:s.pendentes,matriculados:s.matriculados}));
+    const saldoInfo={saldo:_cedMeta?.saldo_atual||0,gasto_mes:_cedMeta?.gasto_mes||0};
+    const ctx=`[CONTEXTO CEDTEC - ${new Date().toISOString().split('T')[0]}]\n\nCampanhas ativas (raw):\n${JSON.stringify(ativasRaw,null,1)}\n\nFunil SGE:\n${JSON.stringify(funilData)}\n\nSaldo: ${JSON.stringify(saldoInfo)}`;
     const persona=document.getElementById('marcos-persona-txt')?.value||MARCOS_DEFAULT_PERSONA;
     const res=await fetch(SURL+'/functions/v1/chat-claude',{
       method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
@@ -3007,6 +3078,7 @@ window.marcosSendQuick=marcosSendQuick;
 window.marcosSavePersona=marcosSavePersona;
 window.marcosRestorePersona=marcosRestorePersona;
 window.marcosManualSave=marcosManualSave;
+window.marcosShowRaw=marcosShowRaw;
 window.cfgSaveMetaConexao=cfgSaveMetaConexao;
 window.sitioViewAttach=sitioViewAttach;
 
