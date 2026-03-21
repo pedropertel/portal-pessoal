@@ -1,0 +1,8 @@
+[functions.meta-balance]
+verify_jwt = false
+
+[functions.meta-sync]
+verify_jwt = false
+
+[functions.chat-claude]
+verify_jwt = false
