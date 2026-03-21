@@ -177,60 +177,46 @@ git push origin main
 
 ```
 portal-pessoal/
-├── index.html          # App inteiro (~2085 linhas): HTML + CSS + JS
-├── manifest.json       # PWA manifest
-├── sw.js               # Service Worker (cache + push)
-├── .gitignore          # Ignora .vercel e .env*.local
-├── .vercel/            # Config do projeto Vercel
-├── CLAUDE.md           # Este arquivo — contexto para o Claude Code
-└── supabase/
-    └── functions/
-        ├── meta-sync/
-        │   └── index.ts    # Edge Function para sincronizar Meta Ads
-        │       - URL: /functions/v1/meta-sync
-        │       - Chama Graph API v19.0 /campaigns + /insights
-        │       - Upsert em meta_campanhas_cache
-        │       - Credenciais: lê de meta_conexoes (DB) com fallback para Secrets
-        │       - Atualiza meta_conexoes.status após sync
-        └── chat-claude/
-            └── index.ts    # Edge Function com Claude Dispatch
-                - URL: /functions/v1/chat-claude
-                - verify_jwt: false (validação manual)
-                - Modelo: claude-haiku-4-5-20251001
-                - Dispatch: classifica domínio → agente especializado
-                - 6 agentes: tarefas, agenda, grafica, sitio, cedtec, geral
-                - Retorna: { reply, action, actionData, agente }
-                - Actions: tarefa | evento | gasto
+├── index.html              # Apenas HTML + CSS (~973 linhas)
+├── js/
+│   ├── app.js              # Entry point: auth, init, notifications, window bridge
+│   ├── core/
+│   │   ├── supabase.js     # Client singleton + query/insert/update/remove wrappers
+│   │   ├── store.js        # Estado centralizado com pub/sub (getState/setState/subscribe)
+│   │   ├── router.js       # Navegação entre páginas (goPage/registerPage)
+│   │   ├── modal.js        # Modal com stack (corrige colisão entre modais)
+│   │   ├── toast.js        # Notificações toast
+│   │   ├── ui.js           # Sidebar, tema, atalhos, busca global
+│   │   └── utils.js        # esc, fmtDate, fmtMoney, parseDateBR
+│   ├── modules/
+│   │   ├── dashboard.js    # Charts + stat cards
+│   │   ├── tasks.js        # Kanban + drag-drop + lembretes (Map-based)
+│   │   ├── docs.js         # Pastas + upload + viewer + share
+│   │   ├── chat.js         # Chat dispatch + voz + markdown + actions
+│   │   ├── agenda.js       # Eventos + calendário
+│   │   ├── sitio.js        # Centros de custo + lançamentos + charts
+│   │   ├── cedtec.js       # CEDTEC + Marcos IA + Meta sync
+│   │   └── config.js       # Configurações + Meta conexão
+│   └── tests/
+│       ├── runner.js       # Mini test framework (describe/it/assert)
+│       ├── index.html      # Abre no browser para rodar testes
+│       ├── utils.test.js   # Testes de funções puras
+│       ├── store.test.js   # Testes do estado centralizado
+│       └── modal.test.js   # Testes do modal stack
+├── manifest.json           # PWA manifest
+├── sw.js                   # Service Worker (cache + push)
+├── CLAUDE.md               # Este arquivo
+└── supabase/functions/     # Edge Functions (chat-claude, meta-sync)
 ```
 
-### Estrutura do `index.html`
+### Arquitetura JS
 
-| Seção | Linhas ~aprox | Conteúdo |
-|-------|-------------|----------|
-| `<head>` | 1-12 | Meta tags, manifest, fonts, Chart.js |
-| CSS | 13-430 | Todo o design system (variáveis, componentes, responsivo, temas, sítio) |
-| HTML Auth | 430-450 | Tela de login |
-| HTML App | 450-720 | Header, sidebar, pages (dashboard, chat, agenda, tasks, docs, sítio, empresas) |
-| HTML Modal/Toast | 720-750 | Modal genérico, toasts, push notification |
-| JavaScript | 750-2764 | Toda a lógica do app |
-
-### Funções JS principais (~100 funções)
-
-**Auth**: `signIn`, `initApp`
-**Navegação**: `setupSidebar`, `toggleSidebar`, `goPage`
-**Tema**: `setupTheme`, `updateThemeIcon`
-**Atalhos**: `setupKeyboardShortcuts`
-**Busca**: `setupSearch`, `doSearch`
-**Dashboard**: `loadDashboard`, `renderRecentTasksTable`, `renderMainChart`, `renderPieChart`
-**Tarefas**: `loadTasks`, `renderKanban`, `setupDragDrop`, `openNewTask`, `openEditTask`, `scheduleReminders`
-**Documentos**: `loadDocs`, `renderDocs`, `openNewFolder`, `renameFolder`, `deleteFolder`, `triggerUpload`, `downloadDoc`, `openFileViewer`, `closeFileViewer`, `shareDoc`
-**Chat**: `sendMsg`, `appendMsg`, `renderMarkdown`, `loadChatHistory`, `clearChat`, `resetMic`
-**Ações IA**: `handleActionTarefa`, `handleActionEvento`, `handleActionGasto`, `handleActionSgeImport`
-**CEDTEC**: `loadCedtec`, `cedtecTab`, `cedtecRenderConexao`, `cedtecSaveConexao`, `cedtecRenderVisao`, `cedtecRenderSaldo`, `cedtecRenderCampanhas`, `cedtecRenderFunil`, `cedtecRenderMatriculas`, `cedtecRenderImport`, `cedtecRenderTrend`, `cedtecSyncMeta`, `cedtecOpenRecarga`, `cedtecDeleteRecarga`
-**Agenda**: `loadAgenda`, `renderAgendaList`, `renderMiniCalendar`, `renderAgendaStats`, `openNewEvent`, `openEditEvent`
-**Sítio**: `loadSitio`, `sitioTab`, `sitioRenderVisao`, `sitioRenderLancs`, `sitioRenderCentrosGrid`, `sitioRenderCrono`, `sitioRenderRelat`, `sitioOpenNewCentro`, `sitioOpenEditCentro`, `sitioOpenNewLanc`, `sitioOpenEditLanc`, `sitioDeleteLanc`, `sitioAttachSection`, `sitioPreviewAttach`, `sitioUploadAttach`, `sitioViewAttach`, `renderIconPicker`, `renderColorPicker`, `fmtMoney`, `parseDateBR`
-**Notificações**: `checkNotifs`, `triggerNotif`, `closeNotif`, `requestNotifPermission`, `scheduleReminders`
-**UI**: `openModal`, `closeModal`, `showToast`, `esc`, `fmtDate`
+- **ES Modules nativos** (`<script type="module">`) — sem build system
+- **Estado centralizado** via `store.js` com pub/sub (substitui ~35 variáveis globais)
+- **Modal com stack** — cada openModal() cria overlay novo, evita colisão
+- **Supabase wrappers** — query/insert/update/remove com error handling + toast automático
+- **Window bridge** em `app.js` — expõe funções para onclick handlers do HTML
+- **Testes** — abrir `js/tests/index.html` em servidor local para rodar
 
 ---
 
@@ -270,7 +256,7 @@ Grants: SELECT, INSERT, UPDATE, DELETE para `authenticated` e `anon`.
 
 2. **Auth via `onAuthStateChange`** — é a única fonte de verdade para estado de login. Eventos: `SIGNED_IN`, `TOKEN_REFRESHED`, `INITIAL_SESSION`, `SIGNED_OUT`. Flag `appInitialized` evita dupla inicialização.
 
-3. **Arquivo único** — todo o app está em `index.html`. Para editar, usar busca por seções marcadas com `// ── NOME ──`.
+3. **Modular** — `index.html` contém apenas HTML + CSS (~973 linhas). Todo JS está em `js/` como ES modules. Para editar funcionalidade, editar o módulo correspondente em `js/modules/`. Core em `js/core/`.
 
 4. **Edge Function `chat-claude` (Claude Dispatch)** — `verify_jwt: false`. Modelo: `claude-haiku-4-5-20251001`. Dispatch em 3 etapas: (1) classificação rápida do domínio, (2) resposta com system prompt especializado com horário de Brasília injetado, (3) pós-processamento de datas no actionData (`postProcessActionData` converte 'hoje', 'amanhã', DD/MM/AAAA, nomes de dia para ISO 8601). 6 domínios: tarefas, agenda, grafica, sitio, cedtec, geral. Deploy via Supabase CLI: `supabase functions deploy chat-claude --project-ref msbwplsknncnxwsalumd`.
 

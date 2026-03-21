@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Portal Pessoal — Testes</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'SF Mono', 'Fira Code', monospace; background: #1a1a2e; color: #eee; padding: 24px; }
+    h1 { margin-bottom: 16px; font-size: 18px; color: #888; }
+    .summary { font-size: 16px; font-weight: bold; margin-bottom: 20px; padding: 12px; background: #16213e; border-radius: 8px; }
+    .suite { margin-bottom: 16px; }
+    .suite h2 { font-size: 14px; color: #aaa; margin-bottom: 6px; }
+    .test { padding: 4px 8px; font-size: 13px; border-radius: 4px; margin: 2px 0; }
+    .test.pass { color: #2ecc71; }
+    .test.fail { color: #e74c3c; background: #2c1a1a; }
+  </style>
+</head>
+<body>
+  <h1>Portal Pessoal — Testes</h1>
+  <div id="results"></div>
+
+  <!-- DOM necessário para testes do modal e toast -->
+  <div id="toasts"></div>
+
+  <script type="module">
+    // Importar todos os arquivos de teste
+    import './utils.test.js';
+    import './store.test.js';
+    import './modal.test.js';
+
+    // Rodar após todos os testes serem registrados
+    import { runAll } from './runner.js';
+    runAll();
+  </script>
+</body>
+</html>

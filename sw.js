@@ -1,5 +1,13 @@
-const CACHE = 'portal-v2';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'portal-v3';
+const ASSETS = [
+  '/', '/index.html', '/manifest.json',
+  '/js/app.js',
+  '/js/core/supabase.js', '/js/core/store.js', '/js/core/router.js',
+  '/js/core/modal.js', '/js/core/toast.js', '/js/core/utils.js', '/js/core/ui.js',
+  '/js/modules/dashboard.js', '/js/modules/tasks.js', '/js/modules/docs.js',
+  '/js/modules/chat.js', '/js/modules/agenda.js', '/js/modules/sitio.js',
+  '/js/modules/cedtec.js', '/js/modules/config.js'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
