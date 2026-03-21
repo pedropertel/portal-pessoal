@@ -96,6 +96,33 @@ export function cedtecTab(tab) {
     if (el) el.style.display = t === tab ? '' : 'none';
   });
   document.querySelectorAll('#cedtec-tabs .ptab').forEach(p => p.classList.toggle('on', p.dataset.tab === tab));
+  // Fetch real-time balance when opening saldo tab
+  if (tab === 'saldo') fetchMetaBalance();
+}
+
+// Fetch real-time balance from Meta API
+async function fetchMetaBalance() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session?.access_token || '';
+    const res = await fetch(SURL + '/functions/v1/meta-balance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: '{}'
+    });
+    const data = await res.json();
+    if (data.error) { console.warn('[MetaBalance]', data.error); return; }
+    // Update store with real balance
+    const ced = getState('cedtec') || {};
+    const meta = ced.meta || {};
+    setState('cedtec', {
+      ...ced,
+      meta: { ...meta, saldo_atual: data.balance, limite: data.spend_cap || meta.limite }
+    });
+    // Re-render
+    cedtecRenderVisao();
+    cedtecRenderSaldo();
+  } catch (e) { console.error('[MetaBalance]', e); }
 }
 
 export async function loadCedtec() {
@@ -119,6 +146,8 @@ export async function loadCedtec() {
   cedtecRenderFunil();
   cedtecRenderMatriculas();
   marcosInit();
+  // Fetch real-time balance from Meta (non-blocking)
+  fetchMetaBalance();
 }
 
 function cedtecRenderVisao() {

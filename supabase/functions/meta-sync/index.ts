@@ -37,6 +37,17 @@ Deno.serve(async (req: Request) => {
     const { token, accountId } = await getCredentials(sb);
     if (!token || !accountId) return new Response(JSON.stringify({ error: 'Credenciais Meta não configuradas.' }), { status: 400, headers });
 
+    // Fetch account balance + spend
+    let accountBalance = 0, accountSpent = 0, spendCap = 0;
+    try {
+      const acctData = await fetchMeta(`${GRAPH_API}/act_${accountId}?fields=balance,amount_spent,spend_cap,currency`, token);
+      // Meta returns balance in cents (integer)
+      accountBalance = acctData.balance ? parseFloat(acctData.balance) / 100 : 0;
+      accountSpent = acctData.amount_spent ? parseFloat(acctData.amount_spent) / 100 : 0;
+      spendCap = acctData.spend_cap ? parseFloat(acctData.spend_cap) / 100 : 0;
+      console.log(`[MetaSync] Account: balance=${accountBalance} spent=${accountSpent} cap=${spendCap}`);
+    } catch (e) { console.error('[MetaSync] Account balance error:', e.message); }
+
     // Fetch campaigns
     const campData = await fetchMeta(`${GRAPH_API}/act_${accountId}/campaigns?fields=${CAMPAIGN_FIELDS}&limit=100`, token);
     const campaigns = campData.data || [];
@@ -119,20 +130,21 @@ Deno.serve(async (req: Request) => {
 
     await sb.from('meta_conexoes').update({ status: 'conectado', last_sync_at: now, campaigns_count: results.length }).eq('ad_account_id', accountId);
 
-    // Update cedtec_conta_meta with real spend data from campaigns
+    // Update cedtec_conta_meta with real data from Meta account
     const totalGastoMes = results.reduce((s, c) => s + (c.spend || 0), 0);
-    const activeResults = results.filter(c => c.status === 'ACTIVE');
-    const gastoHoje = totalGastoMes > 0 ? Math.round(totalGastoMes / 30 * 10) / 10 : 0; // Estimativa média diária
-    const { data: contaMeta } = await sb.from('cedtec_conta_meta').select('id, saldo_atual').limit(1);
+    const gastoHoje = totalGastoMes > 0 ? Math.round(totalGastoMes / 30 * 10) / 10 : 0;
+    const { data: contaMeta } = await sb.from('cedtec_conta_meta').select('id').limit(1);
     if (contaMeta?.[0]) {
       await sb.from('cedtec_conta_meta').update({
+        saldo_atual: accountBalance,
         gasto_mes: totalGastoMes,
         gasto_hoje: gastoHoje,
+        limite: spendCap > 0 ? spendCap : (accountBalance + accountSpent),
         atualizado_em: now
       }).eq('id', contaMeta[0].id);
     }
 
-    return new Response(JSON.stringify({ synced: results.length, timestamp: now, campaigns: results, gasto_mes: totalGastoMes }), { headers });
+    return new Response(JSON.stringify({ synced: results.length, timestamp: now, campaigns: results, gasto_mes: totalGastoMes, saldo: accountBalance, amount_spent: accountSpent }), { headers });
   } catch (err) {
     console.error('[MetaSync] Error:', err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
